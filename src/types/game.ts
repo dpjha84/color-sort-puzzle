@@ -73,3 +73,5 @@ export interface HintMove {
   toIndex: number;
   color: BallColor;
 }
+
+export type RewardType = 'hints' | 'tubes' | 'undos';

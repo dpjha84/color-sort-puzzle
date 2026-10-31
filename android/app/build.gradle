@@ -11,6 +11,7 @@ android {
         applicationId "com.colorsort.odyssey"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        manifestPlaceholders = [admobAppId: "ca-app-pub-9351754143985661~5215148638"]
         versionCode 1
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

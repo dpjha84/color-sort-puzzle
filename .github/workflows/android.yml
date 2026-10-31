@@ -16,13 +16,20 @@ jobs:
         with: { distribution: temurin, java-version: 21 }
       - run: npm ci
       - run: npm run build
+        env:
+          VITE_ADMOB_TESTING: 'true'
       - run: npx cap sync android
       # Test APK (debug-signed, installable on any phone)
       - run: chmod +x gradlew && ./gradlew assembleDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
         with: { name: colorsort-debug-apk, path: android/app/build/outputs/apk/debug/*.apk }
-      # Signed AAB for Play Store (only if secrets are set)
+      # Signed AAB for Play Store (only if the signing secrets are set). Uses LIVE ad units.
+      - name: Rebuild web app with live ads
+        if: ${{ env.KS_B64 != '' }}
+        run: npm run build && npx cap sync android
+        env:
+          VITE_ADMOB_TESTING: 'false'
       - name: Signed release AAB
         if: ${{ env.KS_B64 != '' }}
         env:

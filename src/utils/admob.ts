@@ -1,141 +1,152 @@
 /**
- * Google AdMob & Google H5 Games Ad Placement API integration service.
- * Supports:
- * 1. Web / HTML5 Games: Google Ad Placement API (H5 Game Ads) via ca-pub-XXXXX.
- * 2. Capacitor / Cordova / Native Mobile Wrappers (AdMob plugin).
- * 3. Graceful fallback to interactive playable game demo if AdMob ID is omitted or ad is blocked.
+ * Native Google AdMob integration (Capacitor). Real ads only run inside the Android app;
+ * in a normal browser no ads are shown and rewards are granted immediately (dev convenience).
+ *
+ * TESTING: builds use Google's official TEST ad units unless VITE_ADMOB_TESTING=false is set
+ * at build time (the release workflow does this). Never tap your own live ads.
  */
+import { Capacitor } from '@capacitor/core';
+import {
+  AdMob,
+  AdmobConsentStatus,
+  BannerAdPosition,
+  BannerAdSize,
+  RewardAdPluginEvents,
+  InterstitialAdPluginEvents,
+} from '@capacitor-community/admob';
 
-declare global {
-  interface Window {
-    adsbygoogle?: unknown[];
-    adBreak?: (options: {
-      type: 'start' | 'pause' | 'next' | 'browse' | 'reward';
-      name?: string;
-      beforeAd?: () => void;
-      afterAd?: () => void;
-      adBreakDone?: (placementInfo: unknown) => void;
-      beforeReward?: (showAdFn: () => void) => void;
-      adDismissed?: () => void;
-      adViewed?: () => void;
-    }) => void;
-    adConfig?: (options: {
-      preloadAdBreaks?: string;
-      sound?: 'on' | 'off';
-    }) => void;
-  }
-}
+const LIVE = {
+  banner: 'ca-app-pub-9351754143985661/5311798669',
+  interstitial: 'ca-app-pub-9351754143985661/2452207741',
+  rewarded: 'ca-app-pub-9351754143985661/3737369259',
+};
 
-export interface AdMobConfig {
-  publisherId: string;
-  interstitialUnitId: string;
-  rewardedUnitId: string;
-  bannerUnitId: string;
-  isConfigured: boolean;
-  isInitialized: boolean;
-}
+// Google's official sample ad units (always safe to click).
+const TEST = {
+  banner: 'ca-app-pub-3940256099942544/6300978111',
+  interstitial: 'ca-app-pub-3940256099942544/1033173712',
+  rewarded: 'ca-app-pub-3940256099942544/5224354917',
+};
+
+const isTesting = import.meta.env.VITE_ADMOB_TESTING !== 'false';
+const IDS = isTesting ? TEST : LIVE;
+
+export const BANNER_HEIGHT_PX = 50;
 
 class AdMobManager {
-  private config: AdMobConfig = {
-    publisherId: import.meta.env.VITE_ADMOB_PUBLISHER_ID || '',
-    interstitialUnitId: import.meta.env.VITE_ADMOB_INTERSTITIAL_UNIT_ID || '',
-    rewardedUnitId: import.meta.env.VITE_ADMOB_REWARDED_UNIT_ID || '',
-    bannerUnitId: import.meta.env.VITE_ADMOB_BANNER_UNIT_ID || '',
-    isConfigured: false,
-    isInitialized: false,
-  };
+  private ready = false;
+  private initPromise: Promise<void> | null = null;
+  private bannerShown = false;
 
-  constructor() {
-    this.config.isConfigured = Boolean(
-      this.config.publisherId &&
-      this.config.publisherId !== 'ca-pub-XXXXXXXXXXXXXXXX' &&
-      (this.config.publisherId.startsWith('ca-pub-') || this.config.publisherId.startsWith('pub-'))
-    );
+  public isNative(): boolean {
+    return Capacitor.isNativePlatform();
   }
 
-  public getConfig(): AdMobConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Initializes Google Ad Placement API if publisher ID is configured.
-   */
-  public init(): void {
-    if (typeof window === 'undefined' || this.config.isInitialized) return;
-
-    if (this.config.isConfigured) {
+  public init(): Promise<void> {
+    if (!this.isNative()) return Promise.resolve();
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = (async () => {
       try {
-        // Inject Google AdSense / H5 Games Ads script
-        const script = document.createElement('script');
-        script.async = true;
-        script.crossOrigin = 'anonymous';
-        script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${this.config.publisherId}`;
-        
-        script.onload = () => {
-          this.config.isInitialized = true;
-          if (window.adConfig) {
-            window.adConfig({
-              preloadAdBreaks: 'on',
-              sound: 'on',
-            });
+        // GDPR / UMP consent (needs a message set up in AdMob > Privacy & messaging)
+        try {
+          const info = await AdMob.requestConsentInfo();
+          if (info.isConsentFormAvailable && info.status === AdmobConsentStatus.REQUIRED) {
+            await AdMob.showConsentForm();
           }
-        };
-
-        document.head.appendChild(script);
-      } catch (err) {
-        console.warn('AdMob / Google Ads failed to initialize:', err);
+        } catch (e) {
+          console.warn('AdMob consent step skipped:', e);
+        }
+        await AdMob.initialize({ initializeForTesting: isTesting });
+        this.ready = true;
+      } catch (e) {
+        console.warn('AdMob init failed:', e);
       }
+    })();
+    return this.initPromise;
+  }
+
+  public async showBanner(): Promise<void> {
+    if (!this.isNative() || this.bannerShown) return;
+    await this.init();
+    if (!this.ready) return;
+    try {
+      await AdMob.showBanner({
+        adId: IDS.banner,
+        adSize: BannerAdSize.BANNER,
+        position: BannerAdPosition.BOTTOM_CENTER,
+        margin: 0,
+        isTesting,
+      });
+      this.bannerShown = true;
+    } catch (e) {
+      console.warn('Banner failed:', e);
     }
   }
 
-  /**
-   * Requests an interstitial ad via Google adBreak API or resolves to fallback.
-   */
-  public showInterstitial(onDone: () => void): void {
-    if (this.config.isInitialized && typeof window.adBreak === 'function') {
-      window.adBreak({
-        type: 'next',
-        name: 'level_complete',
-        beforeAd: () => {
-          // Pause background music or game sounds if needed
-        },
-        afterAd: () => {
-          onDone();
-        },
-        adBreakDone: () => {
-          onDone();
-        },
-      });
-    } else {
-      // Fallback to our interactive ad modal
+  /** Shows an interstitial, then always calls onDone (even if no ad is available). */
+  public async showInterstitial(onDone: () => void): Promise<void> {
+    if (!this.isNative()) return onDone();
+    await this.init();
+    if (!this.ready) return onDone();
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      handles.forEach((h) => h.remove());
       onDone();
+    };
+    const handles: { remove: () => void }[] = [];
+    try {
+      handles.push(
+        await AdMob.addListener(InterstitialAdPluginEvents.Dismissed, done),
+        await AdMob.addListener(InterstitialAdPluginEvents.FailedToShow, done),
+        await AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, done),
+      );
+      await AdMob.prepareInterstitial({ adId: IDS.interstitial, isTesting });
+      await AdMob.showInterstitial();
+    } catch (e) {
+      console.warn('Interstitial failed:', e);
+      done();
     }
   }
 
   /**
-   * Requests a rewarded ad via Google adBreak API.
+   * Shows a rewarded ad. onReward fires only if the user earned the reward.
+   * onUnavailable fires if no ad could be loaded/shown.
    */
-  public showRewarded(onRewardEarned: () => void, onDismissed: () => void): void {
-    if (this.config.isInitialized && typeof window.adBreak === 'function') {
-      window.adBreak({
-        type: 'reward',
-        name: 'booster_reward',
-        beforeReward: (showAdFn) => {
-          showAdFn();
-        },
-        adViewed: () => {
-          onRewardEarned();
-        },
-        adDismissed: () => {
-          onDismissed();
-        },
-        adBreakDone: () => {
-          onDismissed();
-        },
-      });
-    } else {
-      // Fallback
-      onRewardEarned();
+  public async showRewarded(onReward: () => void, onUnavailable: () => void): Promise<void> {
+    if (!this.isNative()) return onReward();
+    await this.init();
+    if (!this.ready) return onUnavailable();
+    let rewarded = false;
+    let settled = false;
+    const handles: { remove: () => void }[] = [];
+    const cleanup = () => handles.forEach((h) => h.remove());
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      onUnavailable();
+    };
+    try {
+      handles.push(
+        await AdMob.addListener(RewardAdPluginEvents.Rewarded, () => {
+          rewarded = true;
+        }),
+        await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          if (rewarded) onReward();
+        }),
+        await AdMob.addListener(RewardAdPluginEvents.FailedToLoad, fail),
+        await AdMob.addListener(RewardAdPluginEvents.FailedToShow, fail),
+      );
+      await AdMob.prepareRewardVideoAd({ adId: IDS.rewarded, isTesting });
+      await AdMob.showRewardVideoAd();
+    } catch (e) {
+      console.warn('Rewarded failed:', e);
+      fail();
     }
   }
 }

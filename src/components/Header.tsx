@@ -1,4 +1,5 @@
 import React from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   Trophy,
   RotateCcw,
@@ -102,6 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Palette className="w-4 h-4 text-purple-400" />
           </button>
 
+          {!Capacitor.isNativePlatform() && (
           <button
             onClick={onOpenAndroidInstall}
             className="p-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 text-emerald-300 border border-emerald-500/30 transition-all flex items-center gap-1"
@@ -109,6 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Smartphone className="w-4 h-4 text-emerald-400" />
           </button>
+          )}
 
           <button
             onClick={onOpenLeaderboard}

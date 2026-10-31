@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { RotateCcw, PlusCircle, Undo2, Film, Sparkles } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 
@@ -6,6 +6,7 @@ interface FailedModalProps {
   isOpen: boolean;
   levelNumber: number;
   onRetry: () => void;
+  watchRewardedAd: (onReward: () => void) => void;
   onWatchAdForTube: () => void;
   onWatchAdForUndo: () => void;
 }
@@ -14,35 +15,19 @@ export const FailedModal: React.FC<FailedModalProps> = ({
   isOpen,
   levelNumber,
   onRetry,
+  watchRewardedAd,
   onWatchAdForTube,
   onWatchAdForUndo,
 }) => {
-  const [isWatchingAd, setIsWatchingAd] = useState(false);
-  const [adSeconds, setAdSeconds] = useState(5);
-  const [adRewardAction, setAdRewardAction] = useState<'tube' | 'undo' | 'retry' | null>(null);
-
   if (!isOpen) return null;
 
-  const startAd = (action: 'tube' | 'undo' | 'retry') => {
+  const startAd = (action: 'tube' | 'undo') => {
     soundManager.playClick();
-    setIsWatchingAd(true);
-    setAdSeconds(4);
-    setAdRewardAction(action);
-
-    const timer = setInterval(() => {
-      setAdSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsWatchingAd(false);
-          soundManager.playVictory();
-          if (action === 'tube') onWatchAdForTube();
-          else if (action === 'undo') onWatchAdForUndo();
-          else if (action === 'retry') onRetry();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    watchRewardedAd(() => {
+      soundManager.playVictory();
+      if (action === 'tube') onWatchAdForTube();
+      else onWatchAdForUndo();
+    });
   };
 
   return (
@@ -51,28 +36,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
         {/* Glow backdrop */}
         <div className="absolute -top-12 w-28 h-28 rounded-full bg-red-500/20 blur-2xl pointer-events-none" />
 
-        {isWatchingAd ? (
-          /* Simulated Video Ad Screen */
-          <div className="w-full flex flex-col items-center py-4">
-            <div className="text-xs uppercase font-extrabold text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full border border-amber-400/30 mb-2">
-              Sponsored Game Showcase
-            </div>
-            <div className="w-full aspect-16/9 rounded-2xl bg-gradient-to-tr from-purple-900 to-indigo-900 flex flex-col items-center justify-center p-4 border border-white/20 shadow-inner">
-              <span className="text-4xl animate-bounce">🏰💎⚔️</span>
-              <span className="text-white font-black text-sm mt-2">Crown Kingdom Quest</span>
-              <span className="text-amber-300 text-xs mt-1">
-                Reward unlocking in {adSeconds}s...
-              </span>
-            </div>
-            <div className="w-full bg-white/10 h-1.5 rounded-full mt-4 overflow-hidden">
-              <div
-                className="bg-amber-400 h-full transition-all duration-1000"
-                style={{ width: `${((4 - adSeconds) / 4) * 100}%` }}
-              />
-            </div>
-          </div>
-        ) : (
-          /* Normal Failure Dialog */
+        {(
           <>
             {/* Header Icon */}
             <div className="w-16 h-16 rounded-3xl bg-red-500/20 border border-red-400/40 flex items-center justify-center text-3xl shadow-lg mb-3">
@@ -90,7 +54,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
                 <span className="text-xl">📺</span>
                 <div>
                   <div className="text-[11px] font-bold text-white flex items-center gap-1">
-                    <span>Watch 4s Ad to Revive</span>
+                    <span>Watch a short ad to revive</span>
                     <Sparkles className="w-3 h-3 text-amber-400" />
                   </div>
                   <div className="text-[10px] text-slate-400">Keep your current progress</div>
@@ -114,7 +78,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
                 </div>
                 <div className="flex items-center gap-1 text-[10px] bg-black/25 px-2 py-0.5 rounded-full">
                   <Film className="w-3 h-3" />
-                  <span>4s</span>
+                  <span>Ad</span>
                 </div>
               </button>
 
@@ -129,7 +93,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
                 </div>
                 <div className="flex items-center gap-1 text-[10px] bg-black/25 px-2 py-0.5 rounded-full">
                   <Film className="w-3 h-3" />
-                  <span>4s</span>
+                  <span>Ad</span>
                 </div>
               </button>
 

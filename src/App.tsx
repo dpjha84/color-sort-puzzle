@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Tube, Move, BallSkin, TubeSkin, BackgroundTheme, PlayerProfile } from './types/game';
+import { Tube, Move, BallSkin, TubeSkin, BackgroundTheme, PlayerProfile, RewardType } from './types/game';
 import { generateLevel } from './utils/levels';
 import { isBoardSolved, isTubeCompleted, getValidMoves, findBestHint } from './utils/solver';
 import { soundManager } from './utils/audio';
@@ -13,8 +13,7 @@ import { Header } from './components/Header';
 import { GameBoard } from './components/GameBoard';
 import { VictoryModal } from './components/VictoryModal';
 import { FailedModal } from './components/FailedModal';
-import { InterstitialAdModal } from './components/InterstitialAdModal';
-import { RewardedAdModal, RewardType } from './components/RewardedAdModal';
+import { adMobManager } from './utils/admob';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { SkinsModal } from './components/SkinsModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
@@ -44,9 +43,7 @@ export default function App() {
   // Modals
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showFailedModal, setShowFailedModal] = useState(false);
-  const [showInterstitialAd, setShowInterstitialAd] = useState(false);
-  const [showRewardedAd, setShowRewardedAd] = useState(false);
-  const [rewardType, setRewardType] = useState<RewardType>('hints');
+  const [adNotice, setAdNotice] = useState<string | null>(null);
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [showSkinsModal, setShowSkinsModal] = useState(false);
   const [showLevelSelectModal, setShowLevelSelectModal] = useState(false);
@@ -81,13 +78,12 @@ export default function App() {
     setHintTargetIndex(null);
     setShowVictoryModal(false);
     setShowFailedModal(false);
-    setShowInterstitialAd(false);
   }, []);
 
   // Timer loop
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (isGameActive && !showVictoryModal && !showFailedModal && !showInterstitialAd) {
+    if (isGameActive && !showVictoryModal && !showFailedModal) {
       timerRef.current = setInterval(() => {
         setTimeSeconds((s) => s + 1);
       }, 1000);
@@ -95,7 +91,7 @@ export default function App() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isGameActive, showVictoryModal, showFailedModal, showInterstitialAd]);
+  }, [isGameActive, showVictoryModal, showFailedModal]);
 
   // Load level 1 on mount
   useEffect(() => {
@@ -276,8 +272,7 @@ export default function App() {
     if (moveHistory.length === 0) return;
 
     if (profile.undoRemaining <= 0) {
-      setRewardType('undos');
-      setShowRewardedAd(true);
+      watchRewardedAd(() => handleRewardGranted('undos'));
       return;
     }
 
@@ -328,8 +323,7 @@ export default function App() {
   // Hint Booster
   const handleHint = () => {
     if (profile.hintsRemaining <= 0) {
-      setRewardType('hints');
-      setShowRewardedAd(true);
+      watchRewardedAd(() => handleRewardGranted('hints'));
       return;
     }
 
@@ -360,8 +354,7 @@ export default function App() {
     if (addedTubeThisRound) return;
 
     if (profile.freeTubesRemaining <= 0) {
-      setRewardType('tubes');
-      setShowRewardedAd(true);
+      watchRewardedAd(() => handleRewardGranted('tubes'));
       return;
     }
 
@@ -384,6 +377,14 @@ export default function App() {
     };
     setProfile(updatedProfile);
     savePlayerProfile(updatedProfile);
+  };
+
+  // Real rewarded ad: reward only if the player finishes watching
+  const watchRewardedAd = (onReward: () => void) => {
+    adMobManager.showRewarded(onReward, () => {
+      setAdNotice('No ad available right now. Please try again in a moment.');
+      setTimeout(() => setAdNotice(null), 3000);
+    });
   };
 
   // Rewarded Ad Grant
@@ -442,7 +443,7 @@ export default function App() {
   // Victory flow: trigger interstitial ad then next level
   const handleNextLevelWithAd = () => {
     setShowVictoryModal(false);
-    setShowInterstitialAd(true);
+    adMobManager.showInterstitial(handleInterstitialAdCompleted);
   };
 
   const handleInterstitialAdCompleted = () => {
@@ -459,7 +460,7 @@ export default function App() {
     setProfile(updatedProfile);
     savePlayerProfile(updatedProfile);
     setShowVictoryModal(false);
-    setShowInterstitialAd(true);
+    adMobManager.showInterstitial(handleInterstitialAdCompleted);
   };
 
   // Theme background styles
@@ -530,18 +531,16 @@ export default function App() {
         />
       </main>
 
+      {adNotice && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-800 text-white text-xs border border-white/20 shadow-lg">
+          {adNotice}
+        </div>
+      )}
+
       {/* Mobile-Compliant Bottom Banner Ad */}
       <BannerAd />
 
       {/* MODALS */}
-      {/* 1. Full Screen Interstitial Ad (Triggered on level win) */}
-      <InterstitialAdModal
-        isOpen={showInterstitialAd}
-        levelNumber={currentLevel}
-        onClose={() => setShowInterstitialAd(false)}
-        onCompleted={handleInterstitialAdCompleted}
-      />
-
       {/* 2. Victory Modal */}
       <VictoryModal
         isOpen={showVictoryModal}
@@ -564,16 +563,9 @@ export default function App() {
           setShowFailedModal(false);
           handleReset();
         }}
+        watchRewardedAd={watchRewardedAd}
         onWatchAdForTube={handleReviveWithTube}
         onWatchAdForUndo={handleReviveWithUndo}
-      />
-
-      {/* 4. Rewarded Booster Ad Modal */}
-      <RewardedAdModal
-        isOpen={showRewardedAd}
-        rewardType={rewardType}
-        onClose={() => setShowRewardedAd(false)}
-        onRewardGranted={handleRewardGranted}
       />
 
       {/* 5. Global Leaderboard Modal */}
