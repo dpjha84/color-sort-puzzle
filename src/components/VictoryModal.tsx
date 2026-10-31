@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Star, Trophy, ArrowRight, RotateCcw, Sparkles, Film } from 'lucide-react';
 import { soundManager } from '../utils/audio';
@@ -28,6 +28,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onReplay,
   onDoubleScoreWithAd,
 }) => {
+  // Buttons stay disabled briefly so a late tap from the final move can't hit them by accident
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    setArmed(false);
+    if (!isOpen) return;
+    const t = setTimeout(() => setArmed(true), 800);
+    return () => clearTimeout(t);
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     soundManager.playVictory();
@@ -112,6 +121,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         <div className="w-full flex flex-col gap-2.5">
           {/* Double Score with Ad */}
           <button
+            disabled={!armed}
             onClick={() => {
               soundManager.playClick();
               onDoubleScoreWithAd();
@@ -130,6 +140,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
           {/* Primary: Continue to Next Level (Triggers Interstitial Ad as requested!) */}
           <button
+            disabled={!armed}
             onClick={() => {
               soundManager.playClick();
               onNextLevelWithAd();
@@ -142,6 +153,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
           {/* Replay Level */}
           <button
+            disabled={!armed}
             onClick={() => {
               soundManager.playClick();
               onReplay();

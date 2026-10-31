@@ -18,6 +18,7 @@ jobs:
       - run: npm run build
         env:
           VITE_ADMOB_TESTING: 'true'
+          VITE_NATIVE: 'true'
       - run: npx cap sync android
       # Test APK (debug-signed, installable on any phone)
       - run: chmod +x gradlew && ./gradlew assembleDebug
@@ -30,6 +31,7 @@ jobs:
         run: npm run build && npx cap sync android
         env:
           VITE_ADMOB_TESTING: 'false'
+          VITE_NATIVE: 'true'
       - name: Signed release AAB
         if: ${{ env.KS_B64 != '' }}
         env:

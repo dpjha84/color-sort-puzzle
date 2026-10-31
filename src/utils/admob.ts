@@ -37,6 +37,8 @@ class AdMobManager {
   private ready = false;
   private initPromise: Promise<void> | null = null;
   private bannerShown = false;
+  private interstitialBusy = false;
+  private rewardedBusy = false;
 
   public isNative(): boolean {
     return Capacitor.isNativePlatform();
@@ -86,13 +88,21 @@ class AdMobManager {
   /** Shows an interstitial, then always calls onDone (even if no ad is available). */
   public async showInterstitial(onDone: () => void): Promise<void> {
     if (!this.isNative()) return onDone();
+    if (this.interstitialBusy) return; // ignore repeated taps while an ad is in progress
+    this.interstitialBusy = true;
     await this.init();
-    if (!this.ready) return onDone();
+    if (!this.ready) {
+      this.interstitialBusy = false;
+      return onDone();
+    }
     let finished = false;
+    const watchdog = setTimeout(() => done(), 45000);
     const done = () => {
       if (finished) return;
       finished = true;
+      clearTimeout(watchdog);
       handles.forEach((h) => h.remove());
+      this.interstitialBusy = false;
       onDone();
     };
     const handles: { remove: () => void }[] = [];
@@ -116,12 +126,20 @@ class AdMobManager {
    */
   public async showRewarded(onReward: () => void, onUnavailable: () => void): Promise<void> {
     if (!this.isNative()) return onReward();
+    if (this.rewardedBusy) return;
+    this.rewardedBusy = true;
     await this.init();
-    if (!this.ready) return onUnavailable();
+    if (!this.ready) {
+      this.rewardedBusy = false;
+      return onUnavailable();
+    }
     let rewarded = false;
     let settled = false;
     const handles: { remove: () => void }[] = [];
-    const cleanup = () => handles.forEach((h) => h.remove());
+    const cleanup = () => {
+      handles.forEach((h) => h.remove());
+      this.rewardedBusy = false;
+    };
     const fail = () => {
       if (settled) return;
       settled = true;

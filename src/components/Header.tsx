@@ -147,11 +147,9 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <div className="relative w-11 h-11 rounded-2xl bg-white/10 group-hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90 shadow-md backdrop-blur-sm">
             <Undo2 className="w-5 h-5 text-blue-300" />
-            {undosRemaining > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-[10px] font-bold text-white flex items-center justify-center">
-                {undosRemaining}
-              </span>
-            )}
+            <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-blue-500 text-[9px] font-bold text-white flex items-center justify-center">
+              {undosRemaining > 0 ? undosRemaining : 'AD'}
+            </span>
           </div>
           <span className="text-[10px] font-semibold text-white/70">Undo</span>
         </button>
@@ -180,8 +178,8 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <div className="relative w-11 h-11 rounded-2xl bg-amber-500/20 group-hover:bg-amber-500/30 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md backdrop-blur-sm">
             <Lightbulb className="w-5 h-5 text-amber-400" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-[10px] font-bold text-white flex items-center justify-center">
-              {hintsRemaining}
+            <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center">
+              {hintsRemaining > 0 ? hintsRemaining : 'AD'}
             </span>
           </div>
           <span className="text-[10px] font-semibold text-amber-300">Hint</span>

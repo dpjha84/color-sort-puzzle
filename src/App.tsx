@@ -453,15 +453,19 @@ export default function App() {
     loadLevel(nextLvl);
   };
 
+  // "Double score" is a rewarded ad: score is doubled only if the player watches it fully
   const handleDoubleScoreWithAd = () => {
-    const updatedProfile: PlayerProfile = {
-      ...profile,
-      totalScore: profile.totalScore + lastScoreEarned,
-    };
-    setProfile(updatedProfile);
-    savePlayerProfile(updatedProfile);
-    setShowVictoryModal(false);
-    adMobManager.showInterstitial(handleInterstitialAdCompleted);
+    watchRewardedAd(() => {
+      const updatedProfile: PlayerProfile = {
+        ...profile,
+        totalScore: profile.totalScore + lastScoreEarned,
+      };
+      setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+      setShowVictoryModal(false);
+      // No second ad right after a rewarded one: go straight to the next level
+      handleInterstitialAdCompleted();
+    });
   };
 
   // Theme background styles
