@@ -1,0 +1,6 @@
+{
+  "name": "ColorSort Odyssey",
+  "description": "Engaging ball sort puzzle game with fluid animations, multiple levels, hint solver, global leaderboards, and mobile-first gameplay.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
