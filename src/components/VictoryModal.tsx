@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Star, Trophy, ArrowRight, RotateCcw, Sparkles, Film } from 'lucide-react';
 import { soundManager } from '../utils/audio';
@@ -28,8 +28,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onReplay,
   onDoubleScoreWithAd,
 }) => {
-  const [countdown, setCountdown] = useState(3);
-
   useEffect(() => {
     if (!isOpen) return;
     soundManager.playVictory();
@@ -46,21 +44,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     } catch {
       // Confetti fallback
     }
-
-    setCountdown(3);
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          onNextLevelWithAd();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isOpen, onNextLevelWithAd]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -152,7 +136,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             }}
             className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-98 transition-all"
           >
-            <span>Next Level ({countdown}s)</span>
+            <span>Next Level</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 

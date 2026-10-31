@@ -26,7 +26,7 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
 
   // Game Play State
-  const [currentLevel, setCurrentLevel] = useState(1);
+  const [currentLevel, setCurrentLevel] = useState(() => profile.currentLevel || 1);
   const [tubes, setTubes] = useState<Tube[]>([]);
   const [selectedTubeIndex, setSelectedTubeIndex] = useState<number | null>(null);
   const [moveHistory, setMoveHistory] = useState<Move[]>([]);
@@ -93,10 +93,11 @@ export default function App() {
     };
   }, [isGameActive, showVictoryModal, showFailedModal]);
 
-  // Load level 1 on mount
+  // Resume at the player's saved level on app start (runs once)
   useEffect(() => {
-    loadLevel(profile.currentLevel || 1);
-  }, [loadLevel, profile.currentLevel]);
+    loadLevel(currentLevel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadLevel]);
 
   // Handle Sound Mute Toggle
   const handleToggleSound = () => {
