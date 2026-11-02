@@ -14,6 +14,7 @@ import { GameBoard } from './components/GameBoard';
 import { VictoryModal } from './components/VictoryModal';
 import { FailedModal } from './components/FailedModal';
 import { adMobManager } from './utils/admob';
+import { AdDebugPanel } from './components/AdDebugPanel';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { SkinsModal } from './components/SkinsModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
@@ -44,6 +45,8 @@ export default function App() {
   const [showVictoryModal, setShowVictoryModal] = useState(false);
   const [showFailedModal, setShowFailedModal] = useState(false);
   const [adNotice, setAdNotice] = useState<string | null>(null);
+  const [showAdDebug, setShowAdDebug] = useState(false);
+  const secretTaps = useRef<number[]>([]);
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [showSkinsModal, setShowSkinsModal] = useState(false);
   const [showLevelSelectModal, setShowLevelSelectModal] = useState(false);
@@ -383,7 +386,7 @@ export default function App() {
   // Real rewarded ad: reward only if the player finishes watching
   const watchRewardedAd = (onReward: () => void) => {
     adMobManager.showRewarded(onReward, () => {
-      setAdNotice('No ad available right now. Please try again in a moment.');
+      setAdNotice('Ad not ready yet. Please try again in a few seconds.');
       setTimeout(() => setAdNotice(null), 3000);
     });
   };
@@ -442,8 +445,8 @@ export default function App() {
   };
 
   // Victory flow: trigger interstitial ad then next level
+  // The victory screen stays up until the ad is closed (or skipped), then the next level loads.
   const handleNextLevelWithAd = () => {
-    setShowVictoryModal(false);
     adMobManager.showInterstitial(handleInterstitialAdCompleted);
   };
 
@@ -517,6 +520,14 @@ export default function App() {
           soundManager.playClick();
           setShowLevelSelectModal(true);
         }}
+        onSecretTap={() => {
+          const now = Date.now();
+          secretTaps.current = [...secretTaps.current.filter((t) => now - t < 4000), now];
+          if (secretTaps.current.length >= 7) {
+            secretTaps.current = [];
+            setShowAdDebug(true);
+          }
+        }}
         onOpenAndroidInstall={() => {
           soundManager.playClick();
           setShowAndroidInstallModal(true);
@@ -535,6 +546,8 @@ export default function App() {
           onTubeSelect={handleTubeSelect}
         />
       </main>
+
+      {showAdDebug && <AdDebugPanel onClose={() => setShowAdDebug(false)} />}
 
       {adNotice && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-800 text-white text-xs border border-white/20 shadow-lg">

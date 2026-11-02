@@ -51,7 +51,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 select-none animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg h-[90vh] max-h-[640px] rounded-3xl bg-slate-900 border border-amber-500/30 shadow-2xl flex flex-col overflow-hidden">
         {/* Header Bar */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-slate-950/40">

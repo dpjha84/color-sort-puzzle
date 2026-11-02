@@ -13,6 +13,7 @@ export default defineConfig(() => {
         // In the Android app a service worker only causes stale cached code after updates.
         // VITE_NATIVE=true builds ship a self-destroying SW that removes any old one.
         selfDestroying: process.env.VITE_NATIVE === 'true',
+        injectRegister: process.env.VITE_NATIVE === 'true' ? false : 'auto',
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'apple-touch-icon.png'],
         manifest: {

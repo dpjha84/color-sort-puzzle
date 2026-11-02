@@ -36,7 +36,7 @@ export const AndroidInstallModal: React.FC<AndroidInstallModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 select-none animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg max-h-[90vh] rounded-3xl bg-slate-900 border border-emerald-500/30 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-slate-950/50">

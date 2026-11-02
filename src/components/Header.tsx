@@ -32,6 +32,7 @@ interface HeaderProps {
   onOpenSkins: () => void;
   onOpenLevelSelect: () => void;
   onOpenAndroidInstall: () => void;
+  onSecretTap?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -53,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSkins,
   onOpenLevelSelect,
   onOpenAndroidInstall,
+  onSecretTap,
 }) => {
   return (
     <header className="w-full max-w-4xl mx-auto px-4 py-2 shrink-0 select-none">
@@ -76,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Moves:</span>
             <span className="font-mono tabular-nums text-amber-300">{movesCount}</span>
           </div>
-          <div className="text-[11px] text-white/60 font-medium">
+          <div className="text-[11px] text-white/60 font-medium" onClick={onSecretTap}>
             Goal: ≤{targetMoves}
           </div>
         </div>
