@@ -2,7 +2,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  html {
+    background-color: #020617;
+  }
   body {
+    background-color: #020617;
     font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     user-select: none;
     -webkit-user-select: none;

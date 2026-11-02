@@ -12,6 +12,8 @@ interface TubeViewProps {
   ballSkin?: BallSkin;
   tubeSkin?: TubeSkin;
   ballSize?: number;
+  isDragSource?: boolean;
+  dropState?: 'valid' | 'invalid' | null;
   onSelect: (index: number) => void;
 }
 
@@ -24,6 +26,8 @@ export const TubeView: React.FC<TubeViewProps> = ({
   ballSkin = 'neon',
   tubeSkin = 'glass',
   ballSize = 48,
+  isDragSource = false,
+  dropState = null,
   onSelect,
 }) => {
   const maxCapacity = tube.maxCapacity;
@@ -42,8 +46,9 @@ export const TubeView: React.FC<TubeViewProps> = ({
 
   return (
     <div
+      data-tube-index={index}
       onClick={() => onSelect(index)}
-      className="relative flex flex-col items-center cursor-pointer group touch-manipulation select-none active:scale-[0.98] transition-transform"
+      className="relative flex flex-col items-center cursor-pointer group touch-none select-none active:scale-[0.98] transition-transform"
       style={{
         width: `${tubeWidth}px`,
       }}
@@ -78,7 +83,7 @@ export const TubeView: React.FC<TubeViewProps> = ({
           marginBottom: '-8px',
         }}
       >
-        {liftedBall && (
+        {liftedBall && !isDragSource && (
           <div className="animate-float-slow transform -translate-y-2">
             <BallView
               color={liftedBall.color}
@@ -93,7 +98,11 @@ export const TubeView: React.FC<TubeViewProps> = ({
       {/* Glass Tube Container */}
       <div
         className={`relative flex flex-col justify-end items-center rounded-b-3xl border transition-all duration-200 ${
-          isSelectedSource
+          dropState === 'valid'
+            ? 'ring-2 ring-emerald-400 shadow-[0_0_24px_rgba(52,211,153,0.5)] border-emerald-300'
+            : dropState === 'invalid'
+            ? 'ring-2 ring-red-400/80 border-red-300/70'
+            : isSelectedSource
             ? 'ring-2 ring-amber-400/90 shadow-[0_0_24px_rgba(251,191,36,0.35)] border-amber-300/80'
             : isHintSource
             ? 'ring-2 ring-amber-400/80 shadow-[0_0_20px_rgba(251,191,36,0.4)] border-amber-400'
@@ -104,10 +113,10 @@ export const TubeView: React.FC<TubeViewProps> = ({
             : 'border-white/30 hover:border-white/60'
         } ${
           tubeSkin === 'neon'
-            ? 'bg-slate-900/60 backdrop-blur-md shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+            ? 'bg-slate-900/60 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
             : tubeSkin === 'flask'
-            ? 'bg-slate-800/40 backdrop-blur-md rounded-t-lg'
-            : 'glass-tube backdrop-blur-md'
+            ? 'bg-slate-800/40 rounded-t-lg'
+            : 'glass-tube'
         }`}
         style={{
           width: `${tubeWidth}px`,
@@ -182,7 +191,7 @@ export const TubeView: React.FC<TubeViewProps> = ({
 
       {/* Tube Base / Ground Plate shadow */}
       <div
-        className="h-2 rounded-full bg-black/40 blur-xs mt-1 pointer-events-none"
+        className="h-2 rounded-full bg-black/30 mt-1 pointer-events-none"
         style={{
           width: `${tubeWidth * 0.9}px`,
         }}

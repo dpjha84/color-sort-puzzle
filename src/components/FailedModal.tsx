@@ -34,7 +34,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200">
       <div className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-red-500/30 p-6 shadow-2xl flex flex-col items-center text-center">
         {/* Glow backdrop */}
-        <div className="absolute -top-12 w-28 h-28 rounded-full bg-red-500/20 blur-2xl pointer-events-none" />
+        <div className="absolute -top-12 w-28 h-28 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.3) 0%, rgba(239,68,68,0) 70%)' }} />
 
         {(
           <>

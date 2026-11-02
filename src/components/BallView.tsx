@@ -75,7 +75,7 @@ export const BallView: React.FC<BallViewProps> = ({
       {/* Skin Embellishments */}
       {skin === 'emoji' && (
         <span
-          className="relative z-10 select-none filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+          className="relative z-10 select-none [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]"
           style={{ fontSize: `${size * 0.44}px` }}
         >
           {EMOJI_MAP[color]}
@@ -90,7 +90,7 @@ export const BallView: React.FC<BallViewProps> = ({
 
       {skin === 'sports' && (
         <span
-          className="relative z-10 select-none filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+          className="relative z-10 select-none [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]"
           style={{ fontSize: `${size * 0.44}px` }}
         >
           {SPORTS_MAP[color]}
@@ -99,7 +99,7 @@ export const BallView: React.FC<BallViewProps> = ({
 
       {skin === 'neon' && (
         /* Subtle gemstone facet sheen */
-        <div className="relative z-10 w-2 h-2 rounded-full bg-white/70 blur-[0.5px] pointer-events-none" />
+        <div className="relative z-10 w-2 h-2 rounded-full bg-white/60 pointer-events-none" />
       )}
     </div>
   );

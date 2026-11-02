@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { Capacitor } from '@capacitor/core';
 import { Star, Trophy, ArrowRight, RotateCcw, Sparkles, Film } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 
@@ -39,10 +40,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    soundManager.playVictory();
-    soundManager.triggerHaptic(50);
-
-    // Trigger Confetti explosion
+    // Sound + haptic already played when the level was solved (App.tsx).
+    // Confetti only on the web build: a full-screen canvas is too heavy for many Android WebViews.
+    if (Capacitor.isNativePlatform()) return;
     try {
       confetti({
         particleCount: 80,
@@ -61,7 +61,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200 select-none">
       <div className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl flex flex-col items-center text-center">
         {/* Glow backdrop */}
-        <div className="absolute -top-12 w-32 h-32 rounded-full bg-emerald-500/25 blur-3xl pointer-events-none" />
+        <div className="absolute -top-12 w-32 h-32 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.35) 0%, rgba(16,185,129,0) 70%)' }} />
 
         {/* Level Complete Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 text-xs font-black uppercase tracking-wider mb-2">
@@ -78,7 +78,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 key={starIndex}
                 className={`transition-all duration-300 transform ${
                   isEarned
-                    ? 'scale-110 text-amber-400 filter drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]'
+                    ? 'scale-110 text-amber-400'
                     : 'text-slate-700 scale-95'
                 }`}
               >

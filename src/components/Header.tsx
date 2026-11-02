@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenLevelSelect}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-semibold backdrop-blur-sm transition-all"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-semibold transition-all"
             title="Select Level"
           >
             <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
@@ -133,7 +133,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onReset}
           className="flex flex-col items-center gap-1 group active:scale-95 transition-transform"
         >
-          <div className="w-11 h-11 rounded-2xl bg-white/10 group-hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90 shadow-md backdrop-blur-sm">
+          <div className="w-11 h-11 rounded-2xl bg-white/10 group-hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90 shadow-md">
             <RotateCcw className="w-5 h-5 text-slate-200" />
           </div>
           <span className="text-[10px] font-semibold text-white/70">Reset</span>
@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
             canUndo ? 'active:scale-95 opacity-100' : 'opacity-40 cursor-not-allowed'
           }`}
         >
-          <div className="relative w-11 h-11 rounded-2xl bg-white/10 group-hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90 shadow-md backdrop-blur-sm">
+          <div className="relative w-11 h-11 rounded-2xl bg-white/10 group-hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/90 shadow-md">
             <Undo2 className="w-5 h-5 text-blue-300" />
             <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-blue-500 text-[9px] font-bold text-white flex items-center justify-center">
               {undosRemaining > 0 ? undosRemaining : 'AD'}
@@ -164,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
             canAddTube ? 'active:scale-95 opacity-100' : 'opacity-40 cursor-not-allowed'
           }`}
         >
-          <div className="relative w-11 h-11 rounded-2xl bg-emerald-500/20 group-hover:bg-emerald-500/30 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-md backdrop-blur-sm">
+          <div className="relative w-11 h-11 rounded-2xl bg-emerald-500/20 group-hover:bg-emerald-500/30 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-md">
             <PlusCircle className="w-5 h-5 text-emerald-400" />
             <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-[10px] font-bold text-white flex items-center justify-center">
               +1
@@ -178,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onHint}
           className="flex flex-col items-center gap-1 group active:scale-95 transition-transform"
         >
-          <div className="relative w-11 h-11 rounded-2xl bg-amber-500/20 group-hover:bg-amber-500/30 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md backdrop-blur-sm">
+          <div className="relative w-11 h-11 rounded-2xl bg-amber-500/20 group-hover:bg-amber-500/30 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-md">
             <Lightbulb className="w-5 h-5 text-amber-400" />
             <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-[9px] font-bold text-white flex items-center justify-center">
               {hintsRemaining > 0 ? hintsRemaining : 'AD'}
