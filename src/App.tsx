@@ -20,11 +20,29 @@ import { SkinsModal } from './components/SkinsModal';
 import { LevelSelectModal } from './components/LevelSelectModal';
 import { BannerAd } from './components/BannerAd';
 import { AndroidInstallModal } from './components/AndroidInstallModal';
+import { RewardsModal } from './components/RewardsModal';
+import { VictoryRewards } from './types/game';
+import {
+  ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel,
+} from './utils/progress';
+import { unlockAchievement, submitScore } from './utils/playGames';
 
 export default function App() {
   // Player Profile & Preferences
   const [profile, setProfile] = useState<PlayerProfile>(getPlayerProfile);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Coins, gems, XP, achievements
+  const [progress, setProgressState] = useState<ProgressState>(() => loadProgress(getPlayerProfile().currentLevel));
+  const progressRef = useRef(progress);
+  const setProgress = (p: ProgressState) => {
+    progressRef.current = p;
+    setProgressState(p);
+    saveProgress(p);
+  };
+  const [showRewardsModal, setShowRewardsModal] = useState(false);
+  const [lastRewards, setLastRewards] = useState<VictoryRewards>({ coins: 0, xp: 0, unlocked: [], leveledUpTo: null });
+  const assistedRef = useRef(false); // hint or undo used this round
 
   // Game Play State
   const [currentLevel, setCurrentLevel] = useState(() => profile.currentLevel || 1);
@@ -77,6 +95,7 @@ export default function App() {
     setTimeSeconds(0);
     setIsGameActive(true);
     setAddedTubeThisRound(false);
+    assistedRef.current = false;
     setHintSourceIndex(null);
     setHintTargetIndex(null);
     setShowVictoryModal(false);
@@ -137,6 +156,17 @@ export default function App() {
       );
       setLastScoreEarned(levelScore);
       setProfile(updatedProfile);
+      submitScore(updatedProfile.totalScore);
+
+      const res = applyWin(progressRef.current, {
+        level: currentLevel,
+        stars,
+        timeSeconds,
+        assisted: assistedRef.current,
+      });
+      setProgress(res.state);
+      setLastRewards({ coins: res.summary.coins, xp: res.summary.xp, unlocked: res.summary.unlocked, leveledUpTo: res.summary.leveledUpTo });
+      res.summary.unlocked.forEach((a) => unlockAchievement(a.id));
 
       soundManager.playVictory();
       soundManager.triggerHaptic(50);
@@ -280,6 +310,7 @@ export default function App() {
       return;
     }
 
+    assistedRef.current = true;
     soundManager.playPop(480);
     soundManager.triggerHaptic(20);
 
@@ -340,6 +371,10 @@ export default function App() {
       soundManager.triggerHaptic(30);
       setHintSourceIndex(hint.fromIndex);
       setHintTargetIndex(hint.toIndex);
+      assistedRef.current = true;
+      const st = applyStat(progressRef.current, 'hintsUsed');
+      setProgress(st.state);
+      st.unlocked.forEach((a) => unlockAchievement(a.id));
 
       const updatedProfile: PlayerProfile = {
         ...profile,
@@ -405,6 +440,31 @@ export default function App() {
     savePlayerProfile(updatedProfile);
   };
 
+  // Spend coins/gems on boosters
+  const handleBuy = (item: ShopItem) => {
+    const next = applyPurchase(progressRef.current, item);
+    if (!next) return;
+    setProgress(next);
+    const updated: PlayerProfile = { ...profile };
+    if (item === 'hint') updated.hintsRemaining += 1;
+    if (item === 'undos') updated.undoRemaining += 5;
+    if (item === 'tube') updated.freeTubesRemaining += 1;
+    if (item === 'pack') {
+      updated.hintsRemaining += 5;
+      updated.undoRemaining += 5;
+      updated.freeTubesRemaining += 2;
+    }
+    setProfile(updated);
+    savePlayerProfile(updated);
+    soundManager.playPop(640);
+  };
+
+  const trackStyleChange = () => {
+    const st = applyStat(progressRef.current, 'styleChanges');
+    setProgress(st.state);
+    st.unlocked.forEach((a) => unlockAchievement(a.id));
+  };
+
   // Revive from failure modal
   const handleReviveWithTube = () => {
     const newTube: Tube = {
@@ -465,6 +525,8 @@ export default function App() {
       };
       setProfile(updatedProfile);
       savePlayerProfile(updatedProfile);
+      // Bonus coins match what this win paid
+      setProgress({ ...progressRef.current, coins: progressRef.current.coins + lastRewards.coins });
       setShowVictoryModal(false);
       // No second ad right after a rewarded one: go straight to the next level
       handleInterstitialAdCompleted();
@@ -497,6 +559,12 @@ export default function App() {
         levelNumber={currentLevel}
         movesCount={movesCount}
         targetMoves={targetMoves}
+        onOpenRewards={() => setShowRewardsModal(true)}
+        playerLevel={playerLevel(progress.xp).level}
+        coins={progress.coins}
+        gems={progress.gems}
+        totalStars={profile.totalStars}
+        xpPercent={Math.round((playerLevel(progress.xp).into / playerLevel(progress.xp).need) * 100)}
         hintsRemaining={profile.hintsRemaining}
         undosRemaining={profile.undoRemaining}
         freeTubesRemaining={profile.freeTubesRemaining}
@@ -568,6 +636,10 @@ export default function App() {
         targetMoves={targetMoves}
         scoreEarned={lastScoreEarned}
         starsEarned={lastStarsEarned}
+        coinsEarned={lastRewards.coins}
+        xpEarned={lastRewards.xp}
+        unlocked={lastRewards.unlocked}
+        leveledUpTo={lastRewards.leveledUpTo}
         onNextLevelWithAd={handleNextLevelWithAd}
         onReplay={handleReset}
         onDoubleScoreWithAd={handleDoubleScoreWithAd}
@@ -591,6 +663,7 @@ export default function App() {
         isOpen={showLeaderboardModal}
         onClose={() => setShowLeaderboardModal(false)}
         playerProfile={profile}
+        progress={progress}
         onProfileUpdated={(updated) => setProfile(updated)}
       />
 
@@ -601,16 +674,19 @@ export default function App() {
         playerProfile={profile}
         onUpdateSkin={(skin) => {
           const updated = { ...profile, selectedSkin: skin };
+          trackStyleChange();
           setProfile(updated);
           savePlayerProfile(updated);
         }}
         onUpdateTubeSkin={(tubeSkin) => {
           const updated = { ...profile, selectedTubeSkin: tubeSkin };
+          trackStyleChange();
           setProfile(updated);
           savePlayerProfile(updated);
         }}
         onUpdateTheme={(theme) => {
           const updated = { ...profile, selectedTheme: theme };
+          trackStyleChange();
           setProfile(updated);
           savePlayerProfile(updated);
         }}
@@ -626,6 +702,14 @@ export default function App() {
           setCurrentLevel(lvl);
           loadLevel(lvl);
         }}
+      />
+
+      {/* Rewards: XP level, coins, gems, achievements, shop */}
+      <RewardsModal
+        isOpen={showRewardsModal}
+        onClose={() => setShowRewardsModal(false)}
+        progress={progress}
+        onBuy={handleBuy}
       />
 
       {/* 8. Android App & APK Modal */}

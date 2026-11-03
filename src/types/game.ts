@@ -75,3 +75,10 @@ export interface HintMove {
 }
 
 export type RewardType = 'hints' | 'tubes' | 'undos';
+
+export interface VictoryRewards {
+  coins: number;
+  xp: number;
+  unlocked: import('../utils/progress').Achievement[];
+  leveledUpTo: number | null;
+}

@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { Capacitor } from '@capacitor/core';
 import { Star, Trophy, ArrowRight, RotateCcw, Sparkles, Film } from 'lucide-react';
 import { soundManager } from '../utils/audio';
+import { Achievement } from '../utils/progress';
 
 interface VictoryModalProps {
   isOpen?: boolean;
@@ -12,6 +13,10 @@ interface VictoryModalProps {
   targetMoves: number;
   scoreEarned: number;
   starsEarned: number;
+  coinsEarned: number;
+  xpEarned: number;
+  unlocked: Achievement[];
+  leveledUpTo: number | null;
   onNextLevelWithAd: () => void;
   onReplay: () => void;
   onDoubleScoreWithAd: () => void;
@@ -25,6 +30,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   targetMoves,
   scoreEarned,
   starsEarned,
+  coinsEarned,
+  xpEarned,
+  unlocked,
+  leveledUpTo,
   onNextLevelWithAd,
   onReplay,
   onDoubleScoreWithAd,
@@ -117,6 +126,29 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           </div>
         </div>
 
+
+        {/* Rewards earned */}
+        <div className="w-full mb-3 flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-2 text-xs font-black">
+            <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300">+{coinsEarned} 🪙</span>
+            <span className="px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-400/30 text-purple-300">+{xpEarned} XP</span>
+          </div>
+          {leveledUpTo !== null && (
+            <div className="text-xs font-black text-amber-300">🎉 Rank {leveledUpTo} reached!</div>
+          )}
+          {unlocked.map((a) => (
+            <div key={a.id} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-left">
+              <span className="text-lg">{a.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-black text-emerald-300">Achievement: {a.title}</div>
+                <div className="text-[10px] text-slate-400">
+                  +{a.reward.coins} 🪙{a.reward.gems > 0 ? ` +${a.reward.gems} 💎` : ''} +{a.reward.xp} XP
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Engagement Action Buttons */}
         <div className="w-full flex flex-col gap-2.5">
           {/* Double Score with Ad */}
@@ -130,7 +162,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           >
             <div className="flex items-center gap-1.5">
               <Trophy className="w-4 h-4 text-slate-950" />
-              <span>Claim 2X Score (+{scoreEarned * 2})</span>
+              <span>2X Score + Coins (+{scoreEarned * 2})</span>
             </div>
             <div className="flex items-center gap-1 text-[10px] bg-slate-950/20 px-2 py-0.5 rounded-full font-bold">
               <Film className="w-3 h-3" />
