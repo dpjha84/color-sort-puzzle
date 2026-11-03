@@ -1,3 +1,4 @@
+import { initPlayGames } from './utils/playGames';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
@@ -10,5 +11,6 @@ if (adMobManager.isNative() && 'serviceWorker' in navigator) {
 }
 
 adMobManager.init();
+initPlayGames();
 
 createRoot(document.getElementById('root')!).render(<App />);

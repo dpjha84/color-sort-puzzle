@@ -1,40 +1,62 @@
-// Google Play Games Services bridge. Local achievements/XP work without it.
-// To go live: Play Console > Grow > Play Games Services: create the leaderboard and achievements,
-// install a Capacitor Play Games plugin, then fill the IDs below. Until configured these are safe no-ops.
-import { registerPlugin } from '@capacitor/core';
+// Google Play Games Services (Android only). Everything is a safe no-op on web and when the
+// player is signed out, so the game works the same without Play Games.
+import { Capacitor } from '@capacitor/core';
+import { PlayGames } from '@idleflowgames/capacitor-play-games';
 
-export const PLAY_LEADERBOARD_ID = ''; // e.g. 'CgkI...'
+export const PLAY_LEADERBOARD_ID = 'CggInaup8GwQAhAB';
 export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
-  // first_clear: 'CgkI...',
+  // first_clear: 'CgkI...', (add once the achievements exist in Play Console)
 };
 
-interface PlayGamesPlugin {
-  signIn(): Promise<void>;
-  submitScore(o: { leaderboardId: string; score: number }): Promise<void>;
-  showLeaderboard(o: { leaderboardId: string }): Promise<void>;
-  unlockAchievement(o: { achievementId: string }): Promise<void>;
-}
-const Plugin = registerPlugin<PlayGamesPlugin>('PlayGames');
+const native = () => Capacitor.isNativePlatform();
+let ready: Promise<void> | null = null;
 
-export const isLeaderboardConfigured = () => PLAY_LEADERBOARD_ID !== '';
+// Called once at startup. Silent sign-in only: never shows a prompt by itself.
+export function initPlayGames(): Promise<void> {
+  if (!native()) return Promise.resolve();
+  if (!ready) {
+    ready = (async () => {
+      try {
+        await PlayGames.initialize();
+        await PlayGames.signIn(); // silent
+      } catch { /* not configured / offline */ }
+    })();
+  }
+  return ready;
+}
+
+async function signedIn(): Promise<boolean> {
+  if (!native()) return false;
+  try {
+    await initPlayGames();
+    return (await PlayGames.isSignedIn()).signedIn;
+  } catch {
+    return false;
+  }
+}
 
 export async function unlockAchievement(localId: string): Promise<void> {
-  const achievementId = PLAY_ACHIEVEMENT_IDS[localId];
-  if (!achievementId) return;
-  try { await Plugin.unlockAchievement({ achievementId }); } catch { /* plugin missing or signed out */ }
+  const id = PLAY_ACHIEVEMENT_IDS[localId];
+  if (!id || !(await signedIn())) return;
+  try { await PlayGames.unlockAchievement({ id }); } catch { /* ignore */ }
 }
 
 export async function submitScore(score: number): Promise<void> {
-  if (!isLeaderboardConfigured()) return;
-  try { await Plugin.submitScore({ leaderboardId: PLAY_LEADERBOARD_ID, score }); } catch { /* ignore */ }
+  if (!(await signedIn())) return;
+  try { await PlayGames.submitScore({ leaderboardId: PLAY_LEADERBOARD_ID, score }); } catch { /* ignore */ }
 }
 
-// Opens the native Google Play Games leaderboard. Returns false if it could not be shown.
+// Opens Google's leaderboard screen. Asks the player to sign in first if needed.
+// Returns false if it could not be shown (web, declined sign-in, offline).
 export async function showLeaderboard(): Promise<boolean> {
-  if (!isLeaderboardConfigured()) return false;
+  if (!native()) return false;
   try {
-    await Plugin.signIn();
-    await Plugin.showLeaderboard({ leaderboardId: PLAY_LEADERBOARD_ID });
+    await initPlayGames();
+    if (!(await PlayGames.isSignedIn()).signedIn) {
+      const r = await PlayGames.signIn({ silent: false });
+      if (!r.signedIn) return false;
+    }
+    await PlayGames.showLeaderboard({ leaderboardId: PLAY_LEADERBOARD_ID });
     return true;
   } catch {
     return false;

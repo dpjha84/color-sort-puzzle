@@ -52,7 +52,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const openGlobal = async () => {
     soundManager.playClick();
     const ok = await showLeaderboard();
-    setGlobalMsg(ok ? null : 'Global ranking via Google Play Games is coming soon.');
+    setGlobalMsg(ok ? null : 'Could not open Google Play Games. Check your connection and sign-in, then try again.');
   };
 
   const stats: [string, string | number][] = [

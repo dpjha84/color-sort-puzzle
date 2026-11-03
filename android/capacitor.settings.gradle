@@ -4,3 +4,6 @@ project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/
 
 include ':capacitor-community-admob'
 project(':capacitor-community-admob').projectDir = new File('../node_modules/@capacitor-community/admob/android')
+
+include ':idleflowgames-capacitor-play-games'
+project(':idleflowgames-capacitor-play-games').projectDir = new File('../node_modules/@idleflowgames/capacitor-play-games/android')
