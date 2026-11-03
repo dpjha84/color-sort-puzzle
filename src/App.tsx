@@ -25,7 +25,7 @@ import { VictoryRewards } from './types/game';
 import {
   ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel,
 } from './utils/progress';
-import { unlockAchievement, submitScore } from './utils/playGames';
+import { unlockAchievement, submitScore, syncProgress } from './utils/playGames';
 
 export default function App() {
   // Player Profile & Preferences
@@ -114,6 +114,12 @@ export default function App() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isGameActive, showVictoryModal, showFailedModal]);
+
+  // Push earned achievements/score to Play Games once at launch (no-op when signed out)
+  useEffect(() => {
+    syncProgress(Object.keys(progressRef.current.unlocked), profile.totalScore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Resume at the player's saved level on app start (runs once)
   useEffect(() => {

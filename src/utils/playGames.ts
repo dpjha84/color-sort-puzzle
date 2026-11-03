@@ -5,7 +5,20 @@ import { PlayGames } from '@idleflowgames/capacitor-play-games';
 
 export const PLAY_LEADERBOARD_ID = 'CggInaup8GwQAhAB';
 export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
-  // first_clear: 'CgkI...', (add once the achievements exist in Play Console)
+  first_clear: 'CggInaup8GwQAhAC',
+  clear_10: 'CggInaup8GwQAhAD',
+  clear_50: 'CggInaup8GwQAhAJ',
+  clear_100: 'CggInaup8GwQAhAI',
+  reach_25: 'CggInaup8GwQAhAF',
+  three_star_1: 'CggInaup8GwQAhAL',
+  three_star_25: 'CggInaup8GwQAhAN',
+  stars_100: 'CggInaup8GwQAhAG',
+  no_assist_5: 'CggInaup8GwQAhAO',
+  speed_30: 'CggInaup8GwQAhAK',
+  streak_3: 'CggInaup8GwQAhAM',
+  streak_7: 'CggInaup8GwQAhAP',
+  hints_10: 'CggInaup8GwQAhAE',
+  stylist: 'CggInaup8GwQAhAH',
 };
 
 const native = () => Capacitor.isNativePlatform();
@@ -61,4 +74,12 @@ export async function showLeaderboard(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Re-send everything earned so far (Play ignores repeats). Covers achievements unlocked
+// before the player signed in to Play Games, or while offline.
+export async function syncProgress(unlockedIds: string[], score: number): Promise<void> {
+  if (!(await signedIn())) return;
+  for (const id of unlockedIds) await unlockAchievement(id);
+  if (score > 0) await submitScore(score);
 }
