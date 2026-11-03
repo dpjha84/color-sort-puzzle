@@ -9,11 +9,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- AdMob APP ID (ca-app-pub-XXXX~YYYY). Set in app/build.gradle (admobAppId). -->
+        <!-- GOOGLE PLAY GAMES SERVICES CONFIGURATION -->
+        <!-- Replace 123456789012 with your actual numerical App ID from the Google Play Console -->
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"
-            android:value="@string/game_services_project_id" />
+            android:value="\29226587549" />
 
+        <!-- AdMob APP ID (ca-app-pub-XXXX~YYYY). Set in app/build.gradle (admobAppId). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
