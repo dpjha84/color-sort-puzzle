@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Vendored plugin ships its built files in dist/
+!/plugins/capacitor-play-games/dist/
+!/plugins/capacitor-play-games/dist/**
