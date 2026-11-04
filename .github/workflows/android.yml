@@ -21,6 +21,17 @@ jobs:
           VITE_NATIVE: 'true'
       - run: npx cap sync android
       # Test APK (debug-signed, installable on any phone)
+      # Sign with the upload key when available, so the test APK has a stable fingerprint (needed for Play Games)
+      - name: Prepare signing key
+        if: ${{ env.KS_B64 != '' }}
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$RUNNER_TEMP/upload.jks" "$KS_PASS" "$KEY_ALIAS" "$KEY_PASS" > keystore.properties
+        working-directory: android
       - run: chmod +x gradlew && ./gradlew assembleDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
@@ -34,14 +45,7 @@ jobs:
           VITE_NATIVE: 'true'
       - name: Signed release AAB
         if: ${{ env.KS_B64 != '' }}
-        env:
-          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASS: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
-          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$RUNNER_TEMP/upload.jks" "$KS_PASS" "$KEY_ALIAS" "$KEY_PASS" > keystore.properties
-          chmod +x gradlew && ./gradlew bundleRelease
+        run: chmod +x gradlew && ./gradlew bundleRelease
         working-directory: android
       - uses: actions/upload-artifact@v4
         if: ${{ hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}

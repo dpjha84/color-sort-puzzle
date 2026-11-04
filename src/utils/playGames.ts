@@ -22,6 +22,8 @@ export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
 };
 
 const native = () => Capacitor.isNativePlatform();
+let lastIssue = '';
+const errText = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'string' ? e : JSON.stringify(e)) || 'unknown error';
 let ready: Promise<void> | null = null;
 
 // Called once at startup. Silent sign-in only: never shows a prompt by itself.
@@ -31,8 +33,11 @@ export function initPlayGames(): Promise<void> {
     ready = (async () => {
       try {
         await PlayGames.initialize();
-        await PlayGames.signIn(); // silent
-      } catch { /* not configured / offline */ }
+        const r = await PlayGames.signIn(); // silent
+        if (!r.signedIn) lastIssue = `Not signed in (${r.reason ?? 'unknown'})`;
+      } catch (e) {
+        lastIssue = errText(e);
+      }
     })();
   }
   return ready;
@@ -67,12 +72,48 @@ export async function showLeaderboard(): Promise<boolean> {
     await initPlayGames();
     if (!(await PlayGames.isSignedIn()).signedIn) {
       const r = await PlayGames.signIn({ silent: false });
-      if (!r.signedIn) return false;
+      if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
     }
     await PlayGames.showLeaderboard({ leaderboardId: PLAY_LEADERBOARD_ID });
     return true;
-  } catch {
+  } catch (e) {
+    lastIssue = errText(e);
     return false;
+  }
+}
+
+// Opens Google's achievements screen (same sign-in handling as the leaderboard).
+export async function showAchievements(): Promise<boolean> {
+  if (!native()) return false;
+  try {
+    await initPlayGames();
+    if (!(await PlayGames.isSignedIn()).signedIn) {
+      const r = await PlayGames.signIn({ silent: false });
+      if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
+    }
+    await PlayGames.showAchievements();
+    return true;
+  } catch (e) {
+    lastIssue = errText(e);
+    return false;
+  }
+}
+
+export function getLastIssue(): string {
+  return lastIssue;
+}
+
+// One-line status for the My Stats screen.
+export async function playGamesStatus(): Promise<string> {
+  if (!native()) return 'Play Games: only available in the Android app';
+  try {
+    await initPlayGames();
+    const { signedIn: ok } = await PlayGames.isSignedIn();
+    if (!ok) return `Play Games: not signed in${lastIssue ? ` - ${lastIssue}` : ''}`;
+    const p = await PlayGames.getPlayer();
+    return `Play Games: signed in as ${p.displayName || p.playerId}`;
+  } catch (e) {
+    return `Play Games: error - ${errText(e)}`;
   }
 }
 

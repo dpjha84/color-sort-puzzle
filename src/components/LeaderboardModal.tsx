@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Trophy, Star, User, Edit3, Check, Globe } from 'lucide-react';
 import { PlayerProfile } from '../types/game';
 import { playerLevel, ProgressState } from '../utils/progress';
-import { showLeaderboard } from '../utils/playGames';
+import { showLeaderboard, showAchievements, playGamesStatus, getLastIssue } from '../utils/playGames';
 import {
   AVATAR_OPTIONS,
   COUNTRY_OPTIONS,
@@ -26,6 +26,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   onProfileUpdated,
 }) => {
   const [globalMsg, setGlobalMsg] = useState<string | null>(null);
+  const [pgStatus, setPgStatus] = useState('Play Games: checking...');
+  useEffect(() => {
+    if (isOpen) playGamesStatus().then(setPgStatus);
+  }, [isOpen, globalMsg]);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState(playerProfile.name);
   const [editAvatar, setEditAvatar] = useState(playerProfile.avatar);
@@ -52,7 +56,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const openGlobal = async () => {
     soundManager.playClick();
     const ok = await showLeaderboard();
-    setGlobalMsg(ok ? null : 'Could not open Google Play Games. Check your connection and sign-in, then try again.');
+    setGlobalMsg(ok ? null : `Could not open Google Play Games. ${getLastIssue()}`.trim());
+  };
+
+  const openAchievements = async () => {
+    soundManager.playClick();
+    const ok = await showAchievements();
+    setGlobalMsg(ok ? null : `Could not open Google Play Games. ${getLastIssue()}`.trim());
   };
 
   const stats: [string, string | number][] = [
@@ -172,7 +182,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             <Globe className="w-4 h-4" />
             Global Leaderboard
           </button>
-          {globalMsg && <p className="text-center text-[11px] text-slate-400">{globalMsg}</p>}
+          <button
+            onClick={openAchievements}
+            className="w-full py-3 rounded-2xl bg-white/10 border border-white/15 text-white font-black text-sm flex items-center justify-center gap-2 active:scale-98"
+          >
+            <Trophy className="w-4 h-4 text-amber-400" />
+            Play Games Achievements
+          </button>
+          {globalMsg && <p className="text-center text-[11px] text-amber-300 break-words">{globalMsg}</p>}
+          <p className="text-center text-[10px] text-slate-500 break-words">{pgStatus}</p>
         </div>
       </div>
     </div>
