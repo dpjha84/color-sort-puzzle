@@ -20,6 +20,7 @@ export interface ProgressState {
   xp: number;
   unlocked: Record<string, number>; // achievement id -> unlock timestamp
   stats: Stats;
+  levelStars: Record<number, number>; // best stars per level (1-3)
 }
 
 export interface Reward { coins: number; gems: number; xp: number }
@@ -58,6 +59,7 @@ const fresh = (): ProgressState => ({
   gems: 0,
   xp: 0,
   unlocked: {},
+  levelStars: {},
   stats: {
     levelsWon: 0, maxLevelCleared: 0, threeStarWins: 0, starsEarned: 0, noAssistWins: 0,
     fastWins: 0, hintsUsed: 0, styleChanges: 0, streak: 0, bestStreak: 0, lastWinDate: '',
@@ -70,7 +72,7 @@ export function loadProgress(currentLevel = 1): ProgressState {
     if (raw) {
       const p = JSON.parse(raw);
       const base = fresh();
-      return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, unlocked: p.unlocked || {} };
+      return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, unlocked: p.unlocked || {}, levelStars: p.levelStars || {} };
     }
   } catch { /* ignore */ }
   // Existing players: credit levels they already cleared so they don't start from zero
@@ -126,7 +128,8 @@ export function applyWin(
   prev: ProgressState,
   w: { level: number; stars: number; timeSeconds: number; assisted: boolean },
 ): { state: ProgressState; summary: WinSummary } {
-  const p: ProgressState = { ...prev, stats: { ...prev.stats }, unlocked: { ...prev.unlocked } };
+  const p: ProgressState = { ...prev, stats: { ...prev.stats }, unlocked: { ...prev.unlocked }, levelStars: { ...(prev.levelStars || {}) } };
+  p.levelStars[w.level] = Math.max(p.levelStars[w.level] || 0, w.stars);
   const before = playerLevel(p.xp).level;
   const firstClear = w.level > p.stats.maxLevelCleared;
   const summary: WinSummary = { coins: 0, xp: 0, firstClear, unlocked: [], leveledUpTo: null };

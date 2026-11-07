@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { Tube, BallSkin, TubeSkin } from '../types/game';
 import { TubeView } from './TubeView';
 import { BallView } from './BallView';
@@ -92,46 +92,43 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     return ok ? 'valid' : 'invalid';
   };
 
-  // Split tubes into 1 or 2 rows for ergonomic mobile viewport
+  // Fit the whole board in the space we are given: size the balls from the measured area, so all
+  // tubes are visible at once on any screen (no scrolling), whatever the font scale or phone size.
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const { row1, row2, ballSize } = useMemo(() => {
-    let size = 48;
-    if (totalTubes <= 4) {
-      size = 52;
-      return {
-        row1: tubes,
-        row2: [],
-        ballSize: size,
-      };
-    } else if (totalTubes <= 6) {
-      size = 46;
-      const mid = Math.ceil(totalTubes / 2);
-      return {
-        row1: tubes.slice(0, mid),
-        row2: tubes.slice(mid),
-        ballSize: size,
-      };
-    } else if (totalTubes <= 8) {
-      size = 42;
-      const mid = Math.ceil(totalTubes / 2);
-      return {
-        row1: tubes.slice(0, mid),
-        row2: tubes.slice(mid),
-        ballSize: size,
-      };
-    } else {
-      size = 38;
-      const mid = Math.ceil(totalTubes / 2);
-      return {
-        row1: tubes.slice(0, mid),
-        row2: tubes.slice(mid),
-        ballSize: size,
-      };
+    const rows = totalTubes <= 4 ? 1 : 2;
+    const perRow = rows === 1 ? totalTubes : Math.ceil(totalTubes / 2);
+    let size = totalTubes <= 4 ? 52 : totalTubes <= 6 ? 46 : totalTubes <= 8 ? 42 : 38;
+    if (box && box.w > 0 && box.h > 0) {
+      const gap = box.w >= 640 ? 16 : 10;
+      const byWidth = (box.w - 16 - (perRow - 1) * gap) / perRow - 16; // tube width = ball + 16
+      // a tube block = lifted-ball zone (ball+8) + 4 balls + 28 + base shadow (12), i.e. 5 balls + 48
+      const byHeight = (box.h - 16 - 8 * (rows - 1) - 48 * rows) / (5 * rows);
+      size = Math.min(size + 6, byWidth, byHeight);
     }
-  }, [tubes, totalTubes]);
+    size = Math.max(20, Math.floor(size));
+    return {
+      row1: rows === 1 ? tubes : tubes.slice(0, perRow),
+      row2: rows === 1 ? [] : tubes.slice(perRow),
+      ballSize: size,
+    };
+  }, [tubes, totalTubes, box]);
 
   return (
     <div
-      className="flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-center py-2 px-2 select-none overflow-y-auto"
+      ref={boxRef}
+      className="flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col items-center justify-center py-2 px-2 select-none overflow-hidden"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

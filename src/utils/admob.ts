@@ -42,6 +42,8 @@ const LOG_MAX = 80;
 
 type Listener = () => void;
 
+const INTERSTITIAL_COOLDOWN_MS = 3 * 60 * 1000;
+
 class AdMobManager {
   private initPromise: Promise<void> | null = null;
   private ready = false;
@@ -52,6 +54,10 @@ class AdMobManager {
   private interstitialLoaded = false;
   private interstitialLoading = false;
   private interstitialBusy = false;
+  // Interstitials are time-based: at most one per cooldown. Counts from app start, so a new
+  // session never opens with an ad, and a rewarded ad also resets it.
+  private lastAdShownAt = Date.now();
+
   private interstitialRetry: ReturnType<typeof setTimeout> | null = null;
 
   private rewardedLoaded = false;
@@ -194,6 +200,11 @@ class AdMobManager {
     this.log('showInterstitial requested (tap)');
     if (!this.isNative()) return onDone();
     if (this.interstitialBusy) return; // ignore repeated taps while an ad is in progress
+    const since = Date.now() - this.lastAdShownAt;
+    if (since < INTERSTITIAL_COOLDOWN_MS) {
+      this.log(`interstitial skipped: cooldown (${Math.round(since / 1000)}s of ${INTERSTITIAL_COOLDOWN_MS / 1000}s)`);
+      return onDone();
+    }
     if (!this.interstitialLoaded) {
       this.log('interstitial not ready -> skip');
       this.preloadInterstitial();
@@ -201,6 +212,7 @@ class AdMobManager {
     }
     this.interstitialBusy = true;
     this.interstitialLoaded = false;
+    this.lastAdShownAt = Date.now();
     let finished = false;
     const handles: { remove: () => void }[] = [];
     const watchdog = setTimeout(() => done(), 60_000);
@@ -264,6 +276,7 @@ class AdMobManager {
     }
     this.rewardedBusy = true;
     this.rewardedLoaded = false;
+    this.lastAdShownAt = Date.now(); // a rewarded ad counts toward the interstitial cooldown
     let rewarded = false;
     let settled = false;
     const handles: { remove: () => void }[] = [];

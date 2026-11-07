@@ -8,6 +8,7 @@ interface LevelSelectModalProps {
   currentLevel: number;
   highestUnlockedLevel: number;
   onSelectLevel: (lvl: number) => void;
+  levelStars?: Record<number, number>;
 }
 
 export const LevelSelectModal: React.FC<LevelSelectModalProps> = ({
@@ -16,10 +17,13 @@ export const LevelSelectModal: React.FC<LevelSelectModalProps> = ({
   currentLevel,
   highestUnlockedLevel,
   onSelectLevel,
+  levelStars = {},
 }) => {
   if (!isOpen) return null;
 
-  const totalLevels = 50;
+  const CAMPAIGN_LEVELS = 50;
+  // After the 50-level campaign, levels continue as endless levels, so the grid grows with the player
+  const totalLevels = Math.max(CAMPAIGN_LEVELS, highestUnlockedLevel);
   const levels = Array.from({ length: totalLevels }, (_, i) => i + 1);
 
   return (
@@ -30,7 +34,9 @@ export const LevelSelectModal: React.FC<LevelSelectModalProps> = ({
           <div>
             <h2 className="text-white font-extrabold text-base">Select Level</h2>
             <p className="text-[11px] text-slate-400">
-              Unlocked: {highestUnlockedLevel} / {totalLevels} Levels
+              {highestUnlockedLevel > CAMPAIGN_LEVELS
+                ? `Campaign complete · Endless level ${highestUnlockedLevel}`
+                : `Unlocked: ${highestUnlockedLevel} / ${CAMPAIGN_LEVELS} Levels`}
             </p>
           </div>
 
@@ -51,8 +57,8 @@ export const LevelSelectModal: React.FC<LevelSelectModalProps> = ({
             const isUnlocked = lvl <= highestUnlockedLevel;
             const isCurrent = lvl === currentLevel;
             const isPast = lvl < highestUnlockedLevel;
-            // Simulated stars for past levels: 3 stars for lower levels, 2 for some
-            const stars = isPast ? (lvl % 4 === 0 ? 2 : 3) : 0;
+            // Best stars actually earned; older saves without a record show 1 until replayed
+            const stars = isPast ? Math.min(3, Math.max(1, levelStars[lvl] || 1)) : 0;
 
             return (
               <button

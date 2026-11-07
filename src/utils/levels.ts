@@ -108,92 +108,100 @@ export function generateLevel(levelNum: number): LevelConfig {
       levelNumber: levelNum,
       numColors: colors.size,
       numEmptyTubes: emptyCount,
-      targetMoves: Math.max(10, colors.size * 6),
+      targetMoves: starTarget(colors.size),
       initialTubes: JSON.parse(JSON.stringify(initialTubes)),
     };
   }
 
-  // Scaling parameters based on level
-  let numColors = 3;
-  let numEmptyTubes = 2;
+  // Scaling parameters based on level. Colours keep rising (never drop), then the free space shrinks.
+  const numColors =
+    levelNum <= 3 ? 3
+    : levelNum <= 6 ? 4
+    : levelNum <= 12 ? 5
+    : levelNum <= 22 ? 6
+    : levelNum <= 35 ? 7
+    : levelNum <= 90 ? 8
+    : 9;
+  // Late levels get a single spare tube (every other level from 61, every level from 91): same colours,
+  // far less room to manoeuvre. Never more than 10 tubes so the board still fits a phone screen.
+  const numEmptyTubes = levelNum <= 3 ? 1 : levelNum >= 91 || (levelNum >= 61 && levelNum % 2 === 0) ? 1 : 2;
   const maxCapacity = 4;
-
-  if (levelNum <= 3) {
-    numColors = 3;
-    numEmptyTubes = 1;
-  } else if (levelNum <= 6) {
-    numColors = 4;
-    numEmptyTubes = 2;
-  } else if (levelNum <= 12) {
-    numColors = 5;
-    numEmptyTubes = 2;
-  } else if (levelNum <= 22) {
-    numColors = 6;
-    numEmptyTubes = 2;
-  } else if (levelNum <= 35) {
-    numColors = 7;
-    numEmptyTubes = 2;
-  } else {
-    numColors = Math.min(8, 5 + Math.floor((levelNum - 35) / 10));
-    numEmptyTubes = 2;
-  }
 
   const selectedColors = COLOR_PALETTE.slice(0, numColors).map((c) => c.color);
 
-  // Solved state: each color has 1 full tube of 4 balls
-  const tubes: BallColor[][] = [];
-  for (let i = 0; i < numColors; i++) {
-    tubes.push(Array(maxCapacity).fill(selectedColors[i]));
-  }
-  for (let i = 0; i < numEmptyTubes; i++) {
-    tubes.push([]);
-  }
+  // Seeded, so a level is the same board every time it is played (stars/score stay comparable)
+  const rand = mulberry32(levelNum * 7919 + 13);
+  const shuffleSteps = 60 + Math.min(80, levelNum * 3);
+  const minMisplaced = levelNum > 6 ? 0.6 : 0;
 
-  // Shuffle by performing valid reverse moves
-  // A reverse move moves a top ball from tube A to tube B if tube B has room
-  const shuffleSteps = 40 + Math.min(60, levelNum * 3);
-  let previousFrom = -1;
-  let previousTo = -1;
+  let tubes: BallColor[][] = [];
+  for (let attempt = 0; attempt < 40; attempt++) {
+    // Solved state: each colour has one full tube of 4 balls
+    tubes = [];
+    for (let i = 0; i < numColors; i++) tubes.push(Array(maxCapacity).fill(selectedColors[i]));
+    for (let i = 0; i < numEmptyTubes; i++) tubes.push([]);
 
-  for (let step = 0; step < shuffleSteps; step++) {
-    const validMoves: { from: number; to: number }[] = [];
-
-    for (let from = 0; from < tubes.length; from++) {
-      if (tubes[from].length === 0) continue;
-      for (let to = 0; to < tubes.length; to++) {
-        if (from === to) continue;
-        if (tubes[to].length >= maxCapacity) continue;
-        // Avoid immediate undo of the immediately previous move
-        if (from === previousTo && to === previousFrom) continue;
-
-        validMoves.push({ from, to });
+    // Shuffle by valid reverse moves, so the level is always solvable
+    let previousFrom = -1;
+    let previousTo = -1;
+    for (let step = 0; step < shuffleSteps; step++) {
+      const validMoves: { from: number; to: number }[] = [];
+      for (let from = 0; from < tubes.length; from++) {
+        if (tubes[from].length === 0) continue;
+        for (let to = 0; to < tubes.length; to++) {
+          if (from === to || tubes[to].length >= maxCapacity) continue;
+          if (from === previousTo && to === previousFrom) continue; // don't undo the last move
+          validMoves.push({ from, to });
+        }
+      }
+      if (validMoves.length > 0) {
+        const chosen = validMoves[Math.floor(rand() * validMoves.length)];
+        tubes[chosen.to].push(tubes[chosen.from].pop()!);
+        previousFrom = chosen.from;
+        previousTo = chosen.to;
       }
     }
 
-    if (validMoves.length > 0) {
-      const chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
-      const ball = tubes[chosen.from].pop()!;
-      tubes[chosen.to].push(ball);
-      previousFrom = chosen.from;
-      previousTo = chosen.to;
-    }
-  }
-
-  // Ensure tubes aren't already solved
-  const isAlreadySolved = tubes.every(
-    (t) => t.length === 0 || (t.length === maxCapacity && t.every((c) => c === t[0]))
-  );
-  if (isAlreadySolved) {
-    return generateLevel(levelNum);
+    const solved = tubes.every((t) => t.length === 0 || (t.length === maxCapacity && t.every((c) => c === t[0])));
+    if (!solved && misplacedShare(tubes) >= minMisplaced) break;
   }
 
   return {
     levelNumber: levelNum,
     numColors,
     numEmptyTubes,
-    targetMoves: numColors * 6 + 4,
+    targetMoves: starTarget(numColors),
     initialTubes: tubes,
   };
+}
+
+// 3 stars needs a near-efficient solution (a good solver needs roughly 3 moves per colour)
+function starTarget(numColors: number): number {
+  return numColors * 4 + 2;
+}
+
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Share of balls that sit on top of a different colour (how scrambled the board is)
+function misplacedShare(tubes: BallColor[][]): number {
+  let bad = 0;
+  let total = 0;
+  for (const t of tubes) {
+    total += t.length;
+    let k = 0;
+    while (k < t.length && t[k] === t[0]) k++;
+    bad += t.length - k;
+  }
+  return total ? bad / total : 0;
 }
 
 export function getColorDetails(color: BallColor) {

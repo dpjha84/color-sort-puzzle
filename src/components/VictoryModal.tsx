@@ -77,6 +77,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           <Sparkles className="w-3.5 h-3.5" />
           <span>Level {levelNumber} Cleared!</span>
         </div>
+        {levelNumber === 50 && (
+          <p className="text-[11px] font-bold text-amber-300 mb-1">🏆 Campaign complete! Endless levels are next.</p>
+        )}
 
         {/* 3-Star Rating Display */}
         <div className="flex items-center justify-center gap-2 my-2">
@@ -179,7 +182,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             }}
             className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 active:scale-98 transition-all"
           >
-            <span>Next Level</span>
+            <span>{levelNumber >= 50 ? `Endless Level ${levelNumber + 1}` : 'Next Level'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 

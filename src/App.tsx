@@ -556,7 +556,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen w-full flex flex-col justify-between overflow-hidden ${getThemeClass(
+      className={`h-screen h-dvh w-full flex flex-col overflow-hidden ${getThemeClass(
         profile.selectedTheme
       )} transition-colors duration-500`}
     >
@@ -609,7 +609,7 @@ export default function App() {
       />
 
       {/* Main Interactive Tube Canvas */}
-      <main className="flex-1 w-full flex flex-col items-center justify-center p-2 relative">
+      <main className="flex-1 min-h-0 w-full flex flex-col items-center justify-center p-2 relative">
         <GameBoard
           tubes={tubes}
           selectedTubeIndex={selectedTubeIndex}
@@ -704,6 +704,7 @@ export default function App() {
         onClose={() => setShowLevelSelectModal(false)}
         currentLevel={currentLevel}
         highestUnlockedLevel={profile.currentLevel}
+        levelStars={progress.levelStars}
         onSelectLevel={(lvl) => {
           setCurrentLevel(lvl);
           loadLevel(lvl);
