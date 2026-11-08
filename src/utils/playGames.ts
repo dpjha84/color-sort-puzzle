@@ -18,6 +18,15 @@ export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
   streak_3: 'CggInaup8GwQAhAM',
   streak_7: 'CggInaup8GwQAhAP',
   hints_10: 'CggInaup8GwQAhAE',
+  reach_50: 'CggInaup8GwQAhAX',
+  reach_75: 'CggInaup8GwQAhAW',
+  reach_100: 'CggInaup8GwQAhAS',
+  streak_14: 'CggInaup8GwQAhAZ',
+  streak_30: 'CggInaup8GwQAhAR',
+  no_assist_25: 'CggInaup8GwQAhAT',
+  speed_15: 'CggInaup8GwQAhAU',
+  stars_250: 'CggInaup8GwQAhAV',
+  rank_10: 'CggInaup8GwQAhAY',
   stylist: 'CggInaup8GwQAhAH',
 };
 

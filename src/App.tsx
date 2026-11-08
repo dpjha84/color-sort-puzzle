@@ -21,6 +21,7 @@ import { LevelSelectModal } from './components/LevelSelectModal';
 import { BannerAd } from './components/BannerAd';
 import { AndroidInstallModal } from './components/AndroidInstallModal';
 import { RewardsModal } from './components/RewardsModal';
+import { HomeScreen } from './components/HomeScreen';
 import { VictoryRewards } from './types/game';
 import {
   ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel,
@@ -41,6 +42,8 @@ export default function App() {
     saveProgress(p);
   };
   const [showRewardsModal, setShowRewardsModal] = useState(false);
+  // 'home' on launch; 'game' once the player taps Play. Game state stays alive while on home.
+  const [screen, setScreen] = useState<'home' | 'game'>('home');
   const [lastRewards, setLastRewards] = useState<VictoryRewards>({ coins: 0, xp: 0, unlocked: [], leveledUpTo: null });
   const assistedRef = useRef(false); // hint or undo used this round
 
@@ -105,7 +108,7 @@ export default function App() {
   // Timer loop
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (isGameActive && !showVictoryModal && !showFailedModal) {
+    if (screen === 'game' && isGameActive && !showVictoryModal && !showFailedModal) {
       timerRef.current = setInterval(() => {
         setTimeSeconds((s) => s + 1);
       }, 1000);
@@ -113,7 +116,33 @@ export default function App() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isGameActive, showVictoryModal, showFailedModal]);
+  }, [screen, isGameActive, showVictoryModal, showFailedModal]);
+
+  // Navigation: Play pushes a history entry so the Android back button returns to home (and back on home exits)
+  const goGame = useCallback(() => {
+    setScreen('game');
+    try {
+      if (window.history.state?.screen !== 'game') window.history.pushState({ screen: 'game' }, '');
+    } catch {
+      /* history unavailable: the Home button still works */
+    }
+  }, []);
+  const goHome = useCallback(() => {
+    try {
+      if (window.history.state?.screen === 'game') {
+        window.history.back(); // popstate below switches the screen
+        return;
+      }
+    } catch {
+      /* fall through */
+    }
+    setScreen('home');
+  }, []);
+  useEffect(() => {
+    const onPop = () => setScreen('home');
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   // Push earned achievements/score to Play Games once at launch (no-op when signed out)
   useEffect(() => {
@@ -560,12 +589,54 @@ export default function App() {
         profile.selectedTheme
       )} transition-colors duration-500`}
     >
+      {screen === 'home' ? (
+        <HomeScreen
+          level={currentLevel}
+          hasPlayed={progress.stats.levelsWon > 0 || moveHistory.length > 0 || currentLevel > 1}
+          coins={progress.coins}
+          gems={progress.gems}
+          totalStars={profile.totalStars}
+          rank={playerLevel(progress.xp).level}
+          xpPercent={Math.round((playerLevel(progress.xp).into / playerLevel(progress.xp).need) * 100)}
+          isMuted={isMuted}
+          onPlay={() => {
+            soundManager.playClick();
+            goGame();
+          }}
+          onOpenLevels={() => {
+            soundManager.playClick();
+            setShowLevelSelectModal(true);
+          }}
+          onOpenRewards={() => {
+            soundManager.playClick();
+            setShowRewardsModal(true);
+          }}
+          onOpenStats={() => {
+            soundManager.playClick();
+            setShowLeaderboardModal(true);
+          }}
+          onOpenSkins={() => {
+            soundManager.playClick();
+            setShowSkinsModal(true);
+          }}
+          onOpenAndroidInstall={() => {
+            soundManager.playClick();
+            setShowAndroidInstallModal(true);
+          }}
+          onToggleSound={handleToggleSound}
+        />
+      ) : (
+        <>
       {/* Top Header & Ergonomic Tools */}
       <Header
         levelNumber={currentLevel}
         movesCount={movesCount}
         targetMoves={targetMoves}
         onOpenRewards={() => setShowRewardsModal(true)}
+        onOpenHome={() => {
+          soundManager.playClick();
+          goHome();
+        }}
         playerLevel={playerLevel(progress.xp).level}
         coins={progress.coins}
         gems={progress.gems}
@@ -582,14 +653,6 @@ export default function App() {
         onHint={handleHint}
         onAddTube={handleAddTube}
         onToggleSound={handleToggleSound}
-        onOpenLeaderboard={() => {
-          soundManager.playClick();
-          setShowLeaderboardModal(true);
-        }}
-        onOpenSkins={() => {
-          soundManager.playClick();
-          setShowSkinsModal(true);
-        }}
         onOpenLevelSelect={() => {
           soundManager.playClick();
           setShowLevelSelectModal(true);
@@ -601,10 +664,6 @@ export default function App() {
             secretTaps.current = [];
             setShowAdDebug(true);
           }
-        }}
-        onOpenAndroidInstall={() => {
-          soundManager.playClick();
-          setShowAndroidInstallModal(true);
         }}
       />
 
@@ -620,6 +679,8 @@ export default function App() {
           onTubeSelect={handleTubeSelect}
         />
       </main>
+        </>
+      )}
 
       {showAdDebug && <AdDebugPanel onClose={() => setShowAdDebug(false)} />}
 
@@ -635,7 +696,7 @@ export default function App() {
       {/* MODALS */}
       {/* 2. Victory Modal */}
       <VictoryModal
-        isOpen={showVictoryModal}
+        isOpen={showVictoryModal && screen === 'game'}
         levelNumber={currentLevel}
         movesCount={movesCount}
         timeSeconds={timeSeconds}
@@ -653,7 +714,7 @@ export default function App() {
 
       {/* 3. Level Failed / Deadlock Modal with Revive Ads & Retry */}
       <FailedModal
-        isOpen={showFailedModal}
+        isOpen={showFailedModal && screen === 'game'}
         levelNumber={currentLevel}
         onRetry={() => {
           setShowFailedModal(false);
@@ -708,6 +769,7 @@ export default function App() {
         onSelectLevel={(lvl) => {
           setCurrentLevel(lvl);
           loadLevel(lvl);
+          if (screen === 'home') goGame();
         }}
       />
 

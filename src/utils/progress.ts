@@ -7,6 +7,8 @@ export interface Stats {
   starsEarned: number;
   noAssistWins: number;
   fastWins: number; // first clears under 30 s
+  blitzWins: number; // first clears under 15 s
+  topRank: number; // highest XP rank reached
   hintsUsed: number;
   styleChanges: number;
   streak: number;
@@ -49,6 +51,15 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'streak_3', title: 'On a Roll', desc: 'Win on 3 days in a row', icon: '📅', target: 3, progress: (s) => s.bestStreak, reward: { coins: 60, gems: 1, xp: 60 } },
   { id: 'streak_7', title: 'Devoted', desc: 'Win on 7 days in a row', icon: '💎', target: 7, progress: (s) => s.bestStreak, reward: { coins: 200, gems: 5, xp: 200 } },
   { id: 'hints_10', title: 'Hint Seeker', desc: 'Use 10 hints', icon: '💡', target: 10, progress: (s) => s.hintsUsed, reward: { coins: 30, gems: 0, xp: 30 } },
+  { id: 'reach_50', title: 'Summit', desc: 'Reach level 50', icon: '🏔️', target: 50, progress: (s) => s.maxLevelCleared, reward: { coins: 150, gems: 3, xp: 150 } },
+  { id: 'reach_75', title: 'Sky High', desc: 'Reach level 75', icon: '🚀', target: 75, progress: (s) => s.maxLevelCleared, reward: { coins: 200, gems: 4, xp: 200 } },
+  { id: 'reach_100', title: 'Legend', desc: 'Reach level 100', icon: '👑', target: 100, progress: (s) => s.maxLevelCleared, reward: { coins: 400, gems: 8, xp: 400 } },
+  { id: 'streak_14', title: 'Dedicated', desc: 'Win on 14 days in a row', icon: '📆', target: 14, progress: (s) => s.bestStreak, reward: { coins: 250, gems: 5, xp: 250 } },
+  { id: 'streak_30', title: 'Unstoppable', desc: 'Win on 30 days in a row', icon: '🏆', target: 30, progress: (s) => s.bestStreak, reward: { coins: 500, gems: 10, xp: 500 } },
+  { id: 'no_assist_25', title: 'Mastermind', desc: 'Clear 25 levels without hints or undo', icon: '🎯', target: 25, progress: (s) => s.noAssistWins, reward: { coins: 200, gems: 4, xp: 200 } },
+  { id: 'speed_15', title: 'Lightning', desc: 'Clear a level in under 15 seconds', icon: '⏱️', target: 1, progress: (s) => s.blitzWins, reward: { coins: 100, gems: 2, xp: 100 } },
+  { id: 'stars_250', title: 'Star Hoarder', desc: 'Collect 250 stars', icon: '🌠', target: 250, progress: (s) => s.starsEarned, reward: { coins: 200, gems: 4, xp: 200 } },
+  { id: 'rank_10', title: 'Veteran', desc: 'Reach Rank 10', icon: '🎖️', target: 10, progress: (s) => s.topRank, reward: { coins: 150, gems: 3, xp: 0 } },
   { id: 'stylist', title: 'Stylist', desc: 'Change a ball skin, tube or theme', icon: '🎨', target: 1, progress: (s) => s.styleChanges, reward: { coins: 20, gems: 0, xp: 20 } },
 ];
 
@@ -62,7 +73,7 @@ const fresh = (): ProgressState => ({
   levelStars: {},
   stats: {
     levelsWon: 0, maxLevelCleared: 0, threeStarWins: 0, starsEarned: 0, noAssistWins: 0,
-    fastWins: 0, hintsUsed: 0, styleChanges: 0, streak: 0, bestStreak: 0, lastWinDate: '',
+    fastWins: 0, blitzWins: 0, topRank: 1, hintsUsed: 0, styleChanges: 0, streak: 0, bestStreak: 0, lastWinDate: '',
   },
 });
 
@@ -108,6 +119,7 @@ export interface WinSummary {
 
 function unlockNew(p: ProgressState, summary: WinSummary | null): Achievement[] {
   const fresh: Achievement[] = [];
+  p.stats.topRank = Math.max(p.stats.topRank || 1, playerLevel(p.xp).level);
   for (const a of ACHIEVEMENTS) {
     if (!p.unlocked[a.id] && a.progress(p.stats) >= a.target) {
       p.unlocked[a.id] = Date.now();
@@ -152,6 +164,7 @@ export function applyWin(
     if (w.stars === 3) p.stats.threeStarWins += 1;
     if (!w.assisted) p.stats.noAssistWins += 1;
     if (w.timeSeconds < 30) p.stats.fastWins += 1;
+    if (w.timeSeconds < 15) p.stats.blitzWins += 1;
   } else {
     summary.coins = 5; // replays pay a little, but never advance achievements
     summary.xp = 5;

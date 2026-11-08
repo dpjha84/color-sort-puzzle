@@ -1,17 +1,14 @@
 import React from 'react';
-import { Capacitor } from '@capacitor/core';
 import {
-  Trophy,
   RotateCcw,
   Undo2,
   Lightbulb,
   PlusCircle,
   Volume2,
   VolumeX,
-  Palette,
   LayoutGrid,
-  Smartphone,
   Gift,
+  House,
 } from 'lucide-react';
 
 const compact = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n));
@@ -31,11 +28,9 @@ interface HeaderProps {
   onHint: () => void;
   onAddTube: () => void;
   onToggleSound: () => void;
-  onOpenLeaderboard: () => void;
-  onOpenSkins: () => void;
   onOpenLevelSelect: () => void;
-  onOpenAndroidInstall: () => void;
   onOpenRewards: () => void;
+  onOpenHome: () => void;
   playerLevel: number;
   coins: number;
   gems: number;
@@ -59,11 +54,9 @@ export const Header: React.FC<HeaderProps> = ({
   onHint,
   onAddTube,
   onToggleSound,
-  onOpenLeaderboard,
-  onOpenSkins,
   onOpenLevelSelect,
-  onOpenAndroidInstall,
   onOpenRewards,
+  onOpenHome,
   playerLevel,
   coins,
   gems,
@@ -98,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right: Sound, Skins, Android & Leaderboard triggers */}
+        {/* Right: Sound and Home (themes, stats and more live on the home screen) */}
         <div className="flex items-center gap-1.5">
           <button
             onClick={onToggleSound}
@@ -113,30 +106,12 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
-            onClick={onOpenSkins}
+            onClick={onOpenHome}
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all"
-            title="Themes & Skins"
+            title="Home"
+            aria-label="Home"
           >
-            <Palette className="w-4 h-4 text-purple-400" />
-          </button>
-
-          {!Capacitor.isNativePlatform() && (
-          <button
-            onClick={onOpenAndroidInstall}
-            className="p-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 text-emerald-300 border border-emerald-500/30 transition-all flex items-center gap-1"
-            title="Android App & APK"
-          >
-            <Smartphone className="w-4 h-4 text-emerald-400" />
-          </button>
-          )}
-
-          <button
-            onClick={onOpenLeaderboard}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-300 text-xs font-bold border border-amber-500/30 transition-all"
-            title="My Stats"
-          >
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span className="hidden sm:inline">Stats</span>
+            <House className="w-4 h-4 text-amber-300" />
           </button>
         </div>
       </div>
