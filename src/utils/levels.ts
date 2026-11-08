@@ -1,4 +1,5 @@
 import { BallColor, LevelConfig } from '../types/game';
+import { solvePlan } from './solver';
 
 export const COLOR_PALETTE: { color: BallColor; name: string; hex: string; gradient: string }[] = [
   { color: 'red', name: 'Ruby', hex: '#EF4444', gradient: 'radial-gradient(circle at 35% 35%, #F87171, #EF4444 45%, #991B1B 100%)' },
@@ -120,28 +121,27 @@ export function generateLevel(levelNum: number): LevelConfig {
     : levelNum <= 12 ? 5
     : levelNum <= 22 ? 6
     : levelNum <= 35 ? 7
-    : levelNum <= 90 ? 8
-    : 9;
-  // Late levels get a single spare tube (every other level from 61, every level from 91): same colours,
-  // far less room to manoeuvre. Never more than 10 tubes so the board still fits a phone screen.
-  const numEmptyTubes = levelNum <= 3 ? 1 : levelNum >= 91 || (levelNum >= 61 && levelNum % 2 === 0) ? 1 : 2;
+    : 8;
+  // Two spare tubes (one on the very first levels). Never more than 10 tubes, so the board fits a phone screen.
+  const numEmptyTubes = levelNum <= 3 ? 1 : 2;
   const maxCapacity = 4;
 
   const selectedColors = COLOR_PALETTE.slice(0, numColors).map((c) => c.color);
 
   // Seeded, so a level is the same board every time it is played (stars/score stay comparable)
   const rand = mulberry32(levelNum * 7919 + 13);
-  const shuffleSteps = 60 + Math.min(80, levelNum * 3);
-  const minMisplaced = levelNum > 6 ? 0.6 : 0;
+  // Legal reverse moves are restrictive, so it takes many of them to scramble a board properly
+  const shuffleSteps = 160 + Math.min(240, levelNum * 5);
+  const minMisplaced = levelNum <= 6 ? 0 : levelNum <= 20 ? 0.5 : levelNum <= 35 ? 0.6 : 0.65;
 
   let tubes: BallColor[][] = [];
-  for (let attempt = 0; attempt < 40; attempt++) {
+  for (let attempt = 0; attempt < 60; attempt++) {
     // Solved state: each colour has one full tube of 4 balls
     tubes = [];
     for (let i = 0; i < numColors; i++) tubes.push(Array(maxCapacity).fill(selectedColors[i]));
     for (let i = 0; i < numEmptyTubes; i++) tubes.push([]);
 
-    // Shuffle by valid reverse moves, so the level is always solvable
+    // Shuffle by legal reverse moves, so the level is always solvable
     let previousFrom = -1;
     let previousTo = -1;
     for (let step = 0; step < shuffleSteps; step++) {
@@ -151,6 +151,10 @@ export function generateLevel(levelNum: number): LevelConfig {
         for (let to = 0; to < tubes.length; to++) {
           if (from === to || tubes[to].length >= maxCapacity) continue;
           if (from === previousTo && to === previousFrom) continue; // don't undo the last move
+          // Only reverse a move the player could really have made: the ball being lifted must have sat
+          // on the same colour (or on the bottom), otherwise the board can become unsolvable
+          const src = tubes[from];
+          if (src.length > 1 && src[src.length - 2] !== src[src.length - 1]) continue;
           validMoves.push({ from, to });
         }
       }
@@ -166,11 +170,39 @@ export function generateLevel(levelNum: number): LevelConfig {
     if (!solved && misplacedShare(tubes) >= minMisplaced) break;
   }
 
+  // From level 7 try several random deals and keep the hardest one the solver can still finish
+  // (a random deal is far more scrambled than a reverse walk). The walk board above is the fallback.
+  let targetMoves = starTarget(numColors);
+  if (levelNum > 6) {
+    // later levels look at more deals, so they keep getting harder
+    const tries = 6 + Math.min(14, Math.floor(levelNum / 8));
+    let bestLen = 0;
+    for (let t = 0; t < tries; t++) {
+      const balls: BallColor[] = [];
+      selectedColors.forEach((c) => balls.push(c, c, c, c));
+      for (let i = balls.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [balls[i], balls[j]] = [balls[j], balls[i]];
+      }
+      const deal: BallColor[][] = [];
+      for (let i = 0; i < numColors; i++) deal.push(balls.slice(i * maxCapacity, (i + 1) * maxCapacity));
+      for (let i = 0; i < numEmptyTubes; i++) deal.push([]);
+      // skip boards with a tube that is already finished
+      if (deal.some((d) => d.length === maxCapacity && d.every((c) => c === d[0]))) continue;
+      const plan = solvePlan(deal, maxCapacity, 5000, 40);
+      if (plan && plan.length > bestLen) {
+        bestLen = plan.length;
+        tubes = deal;
+      }
+    }
+    if (bestLen > 0) targetMoves = Math.max(numColors * 3, Math.ceil(bestLen * 1.35));
+  }
+
   return {
     levelNumber: levelNum,
     numColors,
     numEmptyTubes,
-    targetMoves: starTarget(numColors),
+    targetMoves,
     initialTubes: tubes,
   };
 }

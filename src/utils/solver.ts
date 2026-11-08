@@ -106,7 +106,7 @@ function serializeState(tubes: BallColor[][]): string {
  * Breadth-First Search (BFS) to find the shortest path to a solved state
  * and return the first move to make.
  */
-export function findBestHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2500): HintMove | null {
+function legacyHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2500): HintMove | null {
   if (isBoardSolved(tubes, maxCapacity)) return null;
 
   const validMoves = getValidMoves(tubes, maxCapacity);
@@ -175,4 +175,121 @@ export function findBestHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2
 
   // If BFS didn't reach solved state within depth, return the best local heuristic move
   return sortedMoves[0] || null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Weighted A* solver. The plain BFS above gives up on boards with 7+ colours and then falls back to
+// a one-step guess, which can bounce a ball back and forth. This search finds a full solution (not
+// always the shortest), and the whole path is remembered so successive hints follow one plan.
+// ---------------------------------------------------------------------------------------------
+
+/** How far a state is from solved: balls sitting on a different colour, plus split colours. */
+function heuristic(tubes: BallColor[][]): number {
+  let misplaced = 0;
+  const bottoms = new Map<BallColor, number>();
+  for (const t of tubes) {
+    if (t.length === 0) continue;
+    let k = 0;
+    while (k < t.length && t[k] === t[0]) k++;
+    misplaced += t.length - k;
+    bottoms.set(t[0], (bottoms.get(t[0]) || 0) + 1);
+  }
+  let split = 0;
+  bottoms.forEach((n) => {
+    split += n - 1;
+  });
+  return misplaced + split * 2;
+}
+
+const concreteKey = (tubes: BallColor[][]) => tubes.map((t) => t.join(',')).join('|');
+
+// state (exact tube arrangement) -> next move of the plan found for it
+const planCache = new Map<string, HintMove>();
+
+export function solvePlan(tubes: BallColor[][], maxCapacity: number, maxNodes: number, maxMs: number): HintMove[] | null {
+  interface Node {
+    tubes: BallColor[][];
+    g: number;
+    f: number;
+    parent: Node | null;
+    move: HintMove | null;
+  }
+  const startTime = Date.now();
+  const WEIGHT = 3;
+  const heap: Node[] = [];
+  const push = (n: Node) => {
+    heap.push(n);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (heap[p].f <= heap[i].f) break;
+      [heap[p], heap[i]] = [heap[i], heap[p]];
+      i = p;
+    }
+  };
+  const pop = (): Node => {
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length > 0) {
+      heap[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < heap.length && heap[l].f < heap[m].f) m = l;
+        if (r < heap.length && heap[r].f < heap[m].f) m = r;
+        if (m === i) break;
+        [heap[m], heap[i]] = [heap[i], heap[m]];
+        i = m;
+      }
+    }
+    return top;
+  };
+
+  const visited = new Set<string>([serializeState(tubes)]);
+  push({ tubes, g: 0, f: WEIGHT * heuristic(tubes), parent: null, move: null });
+  let nodes = 0;
+  while (heap.length > 0 && nodes < maxNodes) {
+    if ((nodes & 255) === 0 && Date.now() - startTime > maxMs) return null;
+    const cur = pop();
+    nodes++;
+    for (const move of getValidMoves(cur.tubes, maxCapacity)) {
+      const next = cur.tubes.map((t) => [...t]);
+      next[move.toIndex].push(next[move.fromIndex].pop()!);
+      const node: Node = { tubes: next, g: cur.g + 1, f: 0, parent: cur, move };
+      if (isBoardSolved(next, maxCapacity)) {
+        const path: HintMove[] = [];
+        for (let n: Node | null = node; n && n.move; n = n.parent) path.push(n.move);
+        return path.reverse();
+      }
+      const key = serializeState(next);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      node.f = node.g + WEIGHT * heuristic(next);
+      push(node);
+    }
+  }
+  return null;
+}
+
+export function findBestHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2500): HintMove | null {
+  if (isBoardSolved(tubes, maxCapacity)) return null;
+
+  const key = concreteKey(tubes);
+  const cached = planCache.get(key);
+  if (cached) return cached;
+
+  const plan = solvePlan(tubes, maxCapacity, 60000, 700);
+  if (plan && plan.length > 0) {
+    if (planCache.size > 4000) planCache.clear();
+    // remember every step so later hints (after the player follows them) reuse the same plan
+    const state = tubes.map((t) => [...t]);
+    for (const mv of plan) {
+      planCache.set(concreteKey(state), mv);
+      state[mv.toIndex].push(state[mv.fromIndex].pop()!);
+    }
+    return plan[0];
+  }
+  return legacyHint(tubes, maxCapacity, maxDepth);
 }
