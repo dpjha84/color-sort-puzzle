@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Trophy, Star, User, Edit3, Check, Globe } from 'lucide-react';
 import { PlayerProfile } from '../types/game';
 import { playerLevel, ProgressState } from '../utils/progress';
@@ -31,6 +31,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     if (isOpen) playGamesStatus().then(setPgStatus);
   }, [isOpen, globalMsg]);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (isEditingProfile) {
+      // bring the form into view and open the keyboard straight away
+      const t = setTimeout(() => {
+        nameRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        nameRef.current?.focus();
+        nameRef.current?.select();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [isEditingProfile]);
   const [editName, setEditName] = useState(playerProfile.name);
   const [editAvatar, setEditAvatar] = useState(playerProfile.avatar);
   const [editCountry, setEditCountry] = useState(playerProfile.country);
@@ -119,19 +131,20 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <User className="w-3.5 h-3.5" />
                 <span>Customize Player Card</span>
               </div>
+              <input
+                ref={nameRef}
+                type="text"
+                value={editName}
+                maxLength={20}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Your player nickname"
+                className="w-full min-w-0 bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+              />
               <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={editName}
-                  maxLength={20}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Your player nickname"
-                  className="flex-1 min-w-0 bg-slate-900 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
                 <select
                   value={editCountry}
                   onChange={(e) => setEditCountry(e.target.value)}
-                  className="bg-slate-900 border border-white/15 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="flex-1 min-w-0 bg-slate-900 border border-white/15 rounded-xl px-2 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                 >
                   {COUNTRY_OPTIONS.map((c) => (
                     <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
@@ -139,7 +152,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </select>
                 <button
                   onClick={handleSaveProfile}
-                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1"
+                  className="shrink-0 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>Save</span>
