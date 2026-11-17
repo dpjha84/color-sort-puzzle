@@ -67,8 +67,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/80 animate-in fade-in duration-200 select-none">
-      <div className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl flex flex-col items-center text-center">
+    <div className="fixed inset-0 z-40 flex justify-center overflow-y-auto p-4 bg-black/80 animate-in fade-in duration-200 select-none">
+      {/* my-auto centres the card, and lets it scroll from the top when many rewards make it taller than the screen */}
+      <div className="relative my-auto w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl flex flex-col items-center text-center">
         {/* Glow backdrop */}
         <div className="absolute -top-12 w-32 h-32 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.35) 0%, rgba(16,185,129,0) 70%)' }} />
 

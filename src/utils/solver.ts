@@ -206,7 +206,13 @@ const concreteKey = (tubes: BallColor[][]) => tubes.map((t) => t.join(',')).join
 // state (exact tube arrangement) -> next move of the plan found for it
 const planCache = new Map<string, HintMove>();
 
-export function solvePlan(tubes: BallColor[][], maxCapacity: number, maxNodes: number, maxMs: number): HintMove[] | null {
+export function solvePlan(
+  tubes: BallColor[][],
+  maxCapacity: number,
+  maxNodes: number,
+  maxMs: number,
+  info?: { exhausted: boolean }
+): HintMove[] | null {
   interface Node {
     tubes: BallColor[][];
     g: number;
@@ -247,6 +253,7 @@ export function solvePlan(tubes: BallColor[][], maxCapacity: number, maxNodes: n
     return top;
   };
 
+  if (info) info.exhausted = false;
   const visited = new Set<string>([serializeState(tubes)]);
   push({ tubes, g: 0, f: WEIGHT * heuristic(tubes), parent: null, move: null });
   let nodes = 0;
@@ -270,17 +277,25 @@ export function solvePlan(tubes: BallColor[][], maxCapacity: number, maxNodes: n
       push(node);
     }
   }
+  // the open list ran dry (not a node or time limit): no solution exists from this position
+  if (info && heap.length === 0) info.exhausted = true;
   return null;
 }
 
-export function findBestHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2500): HintMove | null {
-  if (isBoardSolved(tubes, maxCapacity)) return null;
+/** A hint, or a proof that the position can no longer be solved (the player should undo or reset). */
+export function getHint(
+  tubes: BallColor[][],
+  maxCapacity = 4,
+  maxDepth = 2500
+): { hint: HintMove | null; unsolvable: boolean } {
+  if (isBoardSolved(tubes, maxCapacity)) return { hint: null, unsolvable: false };
 
   const key = concreteKey(tubes);
   const cached = planCache.get(key);
-  if (cached) return cached;
+  if (cached) return { hint: cached, unsolvable: false };
 
-  const plan = solvePlan(tubes, maxCapacity, 60000, 700);
+  const info = { exhausted: false };
+  const plan = solvePlan(tubes, maxCapacity, 60000, 700, info);
   if (plan && plan.length > 0) {
     if (planCache.size > 4000) planCache.clear();
     // remember every step so later hints (after the player follows them) reuse the same plan
@@ -289,7 +304,12 @@ export function findBestHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2
       planCache.set(concreteKey(state), mv);
       state[mv.toIndex].push(state[mv.fromIndex].pop()!);
     }
-    return plan[0];
+    return { hint: plan[0], unsolvable: false };
   }
-  return legacyHint(tubes, maxCapacity, maxDepth);
+  if (info.exhausted) return { hint: null, unsolvable: true };
+  return { hint: legacyHint(tubes, maxCapacity, maxDepth), unsolvable: false };
+}
+
+export function findBestHint(tubes: BallColor[][], maxCapacity = 4, maxDepth = 2500): HintMove | null {
+  return getHint(tubes, maxCapacity, maxDepth).hint;
 }

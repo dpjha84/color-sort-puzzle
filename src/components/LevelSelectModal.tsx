@@ -57,8 +57,9 @@ export const LevelSelectModal: React.FC<LevelSelectModalProps> = ({
             const isUnlocked = lvl <= highestUnlockedLevel;
             const isCurrent = lvl === currentLevel;
             const isPast = lvl < highestUnlockedLevel;
-            // Best stars actually earned; older saves without a record show 1 until replayed
-            const stars = isPast ? Math.min(3, Math.max(1, levelStars[lvl] || 1)) : 0;
+            // Best stars actually earned. Levels cleared before stars were saved keep the stars players
+            // saw before (3, or 2 on every fourth level) until they are replayed
+            const stars = isPast ? Math.min(3, Math.max(1, levelStars[lvl] || (lvl % 4 === 0 ? 2 : 3))) : 0;
 
             return (
               <button

@@ -16,7 +16,7 @@ import {
 
 export const INSTAGRAM_URL = 'https://www.instagram.com/pixelpocket.apps/';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.colorsort.odyssey';
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 
 const compact = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n));
 

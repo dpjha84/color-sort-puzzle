@@ -179,14 +179,8 @@ export const TubeView: React.FC<TubeViewProps> = ({
           ))}
         </div>
 
-        {/* Completed Tube Stamp / Cap */}
-        {isComplete && (
-          <div className="absolute inset-0 rounded-b-3xl bg-emerald-500/10 pointer-events-none flex flex-col items-center justify-start pt-3">
-            <div className="bg-emerald-500/90 text-white rounded-full p-1 shadow-lg shadow-emerald-500/40 animate-pulse">
-              <Sparkles className="w-4 h-4" />
-            </div>
-          </div>
-        )}
+        {/* Completed tube: soft green tint (the badge used to show through behind the top ball) */}
+        {isComplete && <div className="absolute inset-0 rounded-b-3xl bg-emerald-500/10 pointer-events-none" />}
       </div>
 
       {/* Tube Base / Ground Plate shadow */}

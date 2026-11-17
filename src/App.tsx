@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tube, Move, BallSkin, TubeSkin, BackgroundTheme, PlayerProfile, RewardType } from './types/game';
 import { generateLevel } from './utils/levels';
-import { isBoardSolved, isTubeCompleted, getValidMoves, findBestHint } from './utils/solver';
+import { isBoardSolved, isTubeCompleted, getValidMoves, getHint } from './utils/solver';
 import { soundManager } from './utils/audio';
 import {
   getPlayerProfile,
@@ -399,7 +399,15 @@ export default function App() {
 
     soundManager.playClick();
     const rawColors = tubes.map((t) => t.balls.map((b) => b.color));
-    const hint = findBestHint(rawColors, 4);
+    const { hint, unsolvable } = getHint(rawColors, 4);
+
+    if (unsolvable) {
+      // The position can no longer be solved: say so instead of giving a pointless hint (none is used up)
+      soundManager.playError();
+      setAdNotice('No solution from here. Undo a few moves or reset the level.');
+      setTimeout(() => setAdNotice(null), 3500);
+      return;
+    }
 
     if (hint) {
       soundManager.playPop(700);
