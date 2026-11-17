@@ -102,7 +102,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             <span className="text-4xl">{playerProfile.avatar}</span>
             <div className="flex-1 min-w-0">
               <div className="font-black text-white truncate">{playerProfile.name}</div>
-              <div className="text-[11px] text-slate-300">Rank {pl.level} · {progress.xp} XP</div>
+              <div className="text-[11px] text-slate-300">XP Level {pl.level} · {progress.xp} XP</div>
             </div>
             <button
               onClick={() => { soundManager.playClick(); setIsEditingProfile(!isEditingProfile); }}

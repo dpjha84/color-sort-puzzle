@@ -59,7 +59,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'no_assist_25', title: 'Mastermind', desc: 'Clear 25 levels without hints or undo', icon: '🎯', target: 25, progress: (s) => s.noAssistWins, reward: { coins: 200, gems: 4, xp: 200 } },
   { id: 'speed_15', title: 'Lightning', desc: 'Clear a level in under 15 seconds', icon: '⏱️', target: 1, progress: (s) => s.blitzWins, reward: { coins: 100, gems: 2, xp: 100 } },
   { id: 'stars_250', title: 'Star Hoarder', desc: 'Collect 250 stars', icon: '🌠', target: 250, progress: (s) => s.starsEarned, reward: { coins: 200, gems: 4, xp: 200 } },
-  { id: 'rank_10', title: 'Veteran', desc: 'Reach Rank 10', icon: '🎖️', target: 10, progress: (s) => s.topRank, reward: { coins: 150, gems: 3, xp: 0 } },
+  { id: 'rank_10', title: 'Veteran', desc: 'Reach XP Level 10', icon: '🎖️', target: 10, progress: (s) => s.topRank, reward: { coins: 150, gems: 3, xp: 0 } },
   { id: 'stylist', title: 'Stylist', desc: 'Change a ball skin, tube or theme', icon: '🎨', target: 1, progress: (s) => s.styleChanges, reward: { coins: 20, gems: 0, xp: 20 } },
 ];
 

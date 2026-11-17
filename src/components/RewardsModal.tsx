@@ -26,7 +26,7 @@ export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy
                 {pl.level}
               </div>
               <div>
-                <div className="text-white font-extrabold text-sm">Rank {pl.level}</div>
+                <div className="text-white font-extrabold text-sm">XP Level {pl.level}</div>
                 <div className="text-[10px] text-slate-400">{pl.into} / {pl.need} XP</div>
               </div>
             </div>

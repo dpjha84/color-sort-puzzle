@@ -14,6 +14,12 @@
     touch-action: manipulation;
     overflow-x: hidden;
   }
+  /* body disables selection; Android WebView then refuses typing in inputs unless they opt back in */
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 }
 
 @keyframes float-slow {

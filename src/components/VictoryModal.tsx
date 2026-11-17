@@ -138,7 +138,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             <span className="px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-400/30 text-purple-300">+{xpEarned} XP</span>
           </div>
           {leveledUpTo !== null && (
-            <div className="text-xs font-black text-amber-300">🎉 Rank {leveledUpTo} reached!</div>
+            <div className="text-xs font-black text-amber-300">🎉 XP Level {leveledUpTo} reached!</div>
           )}
           {unlocked.map((a) => (
             <div key={a.id} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-left">

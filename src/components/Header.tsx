@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="flex items-center gap-1 text-cyan-300">💎 {compact(gems)}</span>
         <span className="flex items-center gap-1 text-yellow-300">⭐ {compact(totalStars)}</span>
         <span className="flex items-center gap-1.5 text-purple-300">
-          Rank {playerLevel}
+          XP Lv {playerLevel}
           <span className="inline-block w-12 h-1.5 rounded-full bg-white/15 overflow-hidden">
             <span className="block h-full bg-purple-400" style={{ width: `${xpPercent}%` }} />
           </span>

@@ -120,7 +120,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <span className="text-cyan-300">💎 {compact(gems)}</span>
           <span className="text-yellow-300">⭐ {compact(totalStars)}</span>
           <span className="flex items-center gap-1.5 text-purple-300">
-            Rank {rank}
+            XP Lv {rank}
             <span className="inline-block w-12 h-1.5 rounded-full bg-white/15 overflow-hidden">
               <span className="block h-full bg-purple-400" style={{ width: `${xpPercent}%` }} />
             </span>
