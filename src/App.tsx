@@ -21,6 +21,7 @@ import { LevelSelectModal } from './components/LevelSelectModal';
 import { BannerAd } from './components/BannerAd';
 import { AndroidInstallModal } from './components/AndroidInstallModal';
 import { RewardsModal } from './components/RewardsModal';
+import { AmbientBackground } from './components/AmbientBackground';
 import { HomeScreen } from './components/HomeScreen';
 import { VictoryRewards } from './types/game';
 import {
@@ -599,10 +600,11 @@ export default function App() {
 
   return (
     <div
-      className={`h-screen h-dvh w-full flex flex-col overflow-hidden ${getThemeClass(
+      className={`relative isolate h-screen h-dvh w-full flex flex-col overflow-hidden ${getThemeClass(
         profile.selectedTheme
       )} transition-colors duration-500`}
     >
+      <AmbientBackground />
       {screen === 'home' ? (
         <HomeScreen
           level={currentLevel}

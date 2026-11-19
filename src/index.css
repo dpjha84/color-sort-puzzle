@@ -151,3 +151,29 @@
 @media (prefers-reduced-motion: reduce) {
   .lift-pop, .animate-bob, .animate-cta-glow, .animate-card-pop { animation: none !important; }
 }
+
+/* Ambient background */
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(26px, -18px) scale(1.08); }
+  66% { transform: translate(-20px, 22px) scale(0.94); }
+}
+@keyframes speck-float {
+  0%, 100% { transform: translateY(0); opacity: 0.15; }
+  50% { transform: translateY(-26px); opacity: 0.85; }
+}
+.ambient-orb { animation: orb-drift 20s ease-in-out infinite; will-change: transform; }
+.ambient-speck { animation: speck-float 8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb, .ambient-speck { animation: none !important; }
+}
+
+/* Brighter glass edge so tubes read as polished glass */
+.glass-tube {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow:
+    inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.25),
+    0 0 14px rgba(160, 200, 255, 0.16),
+    0 8px 24px -4px rgba(0, 0, 0, 0.35);
+}

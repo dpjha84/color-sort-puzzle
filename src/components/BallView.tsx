@@ -29,7 +29,8 @@ export const BallView: React.FC<BallViewProps> = ({
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        visibility: hidden ? 'hidden' : undefined,
+        // no transition while hidden: the ball's transition-all would otherwise keep it visible for 200ms
+        ...(hidden ? { visibility: 'hidden' as const, transition: 'none' } : {}),
       }}
       className={`relative rounded-full shrink-0 flex items-center justify-center transition-all duration-200 ${
         isSelected

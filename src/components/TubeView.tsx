@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tube, BallSkin, TubeSkin } from '../types/game';
 import { BallView } from './BallView';
-import { Sparkles, ArrowDown, ArrowUp } from 'lucide-react';
+import { Check, ArrowDown, ArrowUp } from 'lucide-react';
 
 interface TubeViewProps {
   tube: Tube;
@@ -205,7 +205,23 @@ export const TubeView: React.FC<TubeViewProps> = ({
           ))}
         </div>
 
-        {/* Completed tube: soft green tint (the badge used to show through behind the top ball) */}
+        {/* Completed tube: a tick on the rim corner (outside the glass, so it never shows behind a ball) */}
+        {isComplete && !balls.some((b) => hiddenBallIds?.has(b.id)) && (
+          <div
+            className="absolute z-30 flex items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-emerald-200/70 shadow-[0_0_10px_rgba(52,211,153,0.8)]"
+            style={{
+              top: -23,
+              right: -4,
+              width: 18,
+              height: 18,
+              animation: 'star-pop 420ms cubic-bezier(.3,1.4,.5,1) both',
+            }}
+          >
+            <Check className="w-3 h-3" strokeWidth={4} />
+          </div>
+        )}
+
+        {/* Completed tube: soft green tint */}
         {isComplete && <div className="absolute inset-0 rounded-b-3xl bg-emerald-500/10 pointer-events-none" />}
       </div>
 
