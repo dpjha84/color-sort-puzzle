@@ -36,6 +36,14 @@ jobs:
         working-directory: android
       - uses: actions/upload-artifact@v4
         with: { name: colorsort-debug-apk, path: android/app/build/outputs/apk/debug/*.apk }
+      # Minified (R8) release build with TEST ads, to check on a phone before uploading the AAB
+      - name: Release test APK (R8, test ads)
+        if: ${{ env.KS_B64 != '' }}
+        run: ./gradlew assembleRelease
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        if: ${{ env.KS_B64 != '' }}
+        with: { name: colorsort-release-test-apk, path: android/app/build/outputs/apk/release/*.apk }
       # Signed AAB for Play Store (only if the signing secrets are set). Uses LIVE ad units.
       - name: Rebuild web app with live ads
         if: ${{ env.KS_B64 != '' }}
