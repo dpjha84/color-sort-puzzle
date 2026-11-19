@@ -16,7 +16,7 @@ import {
 
 export const INSTAGRAM_URL = 'https://www.instagram.com/pixelpocket.apps/';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.colorsort.odyssey';
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.6';
 
 const compact = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n));
 
@@ -94,12 +94,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             {['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7'].map((c, i) => (
               <span
                 key={c}
-                className="block rounded-full shadow-lg"
+                className="block rounded-full shadow-lg animate-bob"
                 style={{
                   width: 22,
                   height: 22,
                   background: `radial-gradient(circle at 35% 30%, #fff8, ${c} 55%)`,
-                  transform: `translateY(${i % 2 ? 0 : -8}px)`,
+                  marginBottom: i % 2 ? 0 : 8,
+                  animationDelay: `${i * 160}ms`,
                 }}
               />
             ))}
@@ -130,7 +131,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {/* Primary action */}
         <button
           onClick={onPlay}
-          className="w-full flex items-center justify-center gap-3 rounded-3xl bg-gradient-to-b from-amber-400 to-amber-600 text-slate-950 font-extrabold text-xl py-4 shadow-xl shadow-amber-900/40 active:scale-[0.97] transition-transform"
+          className="w-full flex items-center justify-center gap-3 rounded-3xl bg-gradient-to-b from-amber-400 to-amber-600 text-slate-950 font-extrabold text-xl py-4 shadow-xl shadow-amber-900/40 active:scale-[0.97] transition-transform animate-cta-glow"
         >
           <Play className="w-6 h-6 fill-slate-950" />
           <span>{hasPlayed ? 'Continue' : 'Play'}</span>

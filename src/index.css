@@ -72,3 +72,82 @@
   );
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
+
+/* ---------- Juice: springy motion for tubes and balls ---------- */
+@keyframes tube-in-a {
+  0% { opacity: 0; transform: translateY(-40px) scale(0.9, 1.08); }
+  55% { opacity: 1; transform: translateY(7px) scale(1.04, 0.95); }
+  78% { transform: translateY(-3px) scale(0.99, 1.01); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes tube-in-b {
+  0% { opacity: 0; transform: translateY(-40px) scale(0.9, 1.08); }
+  55% { opacity: 1; transform: translateY(7px) scale(1.04, 0.95); }
+  78% { transform: translateY(-3px) scale(0.99, 1.01); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes tube-thud-a {
+  0% { transform: scale(1, 1); }
+  28% { transform: scale(1.07, 0.93); }
+  58% { transform: scale(0.97, 1.04); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes tube-thud-b {
+  0% { transform: scale(1, 1); }
+  28% { transform: scale(1.07, 0.93); }
+  58% { transform: scale(0.97, 1.04); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes ball-hop-a {
+  0% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(-14px) scale(0.92, 1.1); }
+  55% { transform: translateY(0) scale(1.12, 0.88); }
+  75% { transform: translateY(-4px) scale(0.98, 1.03); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes ball-hop-b {
+  0% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(-14px) scale(0.92, 1.1); }
+  55% { transform: translateY(0) scale(1.12, 0.88); }
+  75% { transform: translateY(-4px) scale(0.98, 1.03); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes lift-pop {
+  0% { transform: translateY(var(--lift, 40px)) scale(0.92, 1.08); }
+  55% { transform: translateY(-9px) scale(1.1, 0.9); }
+  78% { transform: translateY(2px) scale(0.98, 1.02); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+.lift-pop {
+  animation: lift-pop 300ms cubic-bezier(.3, 1.2, .5, 1) both;
+}
+
+/* Home screen life */
+@keyframes bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
+}
+@keyframes cta-glow {
+  0%, 100% { box-shadow: 0 10px 30px -8px rgba(245, 158, 11, 0.45); transform: scale(1); }
+  50% { box-shadow: 0 14px 40px -6px rgba(245, 158, 11, 0.8); transform: scale(1.025); }
+}
+.animate-bob { animation: bob 2.2s ease-in-out infinite; }
+.animate-cta-glow { animation: cta-glow 2.4s ease-in-out infinite; }
+
+/* Win screen springs */
+@keyframes card-pop {
+  0% { opacity: 0; transform: scale(0.82) translateY(24px); }
+  60% { opacity: 1; transform: scale(1.04) translateY(-4px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes star-pop {
+  0% { opacity: 0; transform: scale(0) rotate(-40deg); }
+  60% { opacity: 1; transform: scale(1.45) rotate(10deg); }
+  80% { transform: scale(0.95) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1.1) rotate(0); }
+}
+.animate-card-pop { animation: card-pop 460ms cubic-bezier(.3, 1.3, .5, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lift-pop, .animate-bob, .animate-cta-glow, .animate-card-pop { animation: none !important; }
+}

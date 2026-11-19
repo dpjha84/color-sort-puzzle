@@ -14,6 +14,11 @@ interface TubeViewProps {
   ballSize?: number;
   isDragSource?: boolean;
   dropState?: 'valid' | 'invalid' | null;
+  hiddenBallIds?: Set<string>;
+  intro?: number; // >0 plays the tube-in bounce (parity picks the keyframe set so it can replay)
+  introDelay?: number;
+  thud?: number; // landing squash
+  celebrate?: number; // completed-tube ball hop
   onSelect: (index: number) => void;
 }
 
@@ -28,6 +33,11 @@ export const TubeView: React.FC<TubeViewProps> = ({
   ballSize = 48,
   isDragSource = false,
   dropState = null,
+  hiddenBallIds,
+  intro = 0,
+  introDelay = 0,
+  thud = 0,
+  celebrate = 0,
   onSelect,
 }) => {
   const maxCapacity = tube.maxCapacity;
@@ -51,6 +61,7 @@ export const TubeView: React.FC<TubeViewProps> = ({
       className="relative flex flex-col items-center cursor-pointer group touch-none select-none active:scale-[0.98] transition-transform"
       style={{
         width: `${tubeWidth}px`,
+        animation: intro > 0 ? `${intro % 2 ? 'tube-in-a' : 'tube-in-b'} 560ms ${introDelay}ms cubic-bezier(.34,1.4,.64,1) backwards` : undefined,
       }}
       role="button"
       tabIndex={0}
@@ -84,13 +95,19 @@ export const TubeView: React.FC<TubeViewProps> = ({
         }}
       >
         {liftedBall && !isDragSource && (
-          <div className="animate-float-slow transform -translate-y-2">
-            <BallView
-              color={liftedBall.color}
-              skin={ballSkin}
-              size={ballSize}
-              isSelected={true}
-            />
+          <div
+            className="lift-pop"
+            style={{ ['--lift' as string]: `${Math.round(ballSize * 0.95)}px` }}
+          >
+            <div className="animate-float-slow transform -translate-y-2">
+              <BallView
+                color={liftedBall.color}
+                skin={ballSkin}
+                size={ballSize}
+                isSelected={true}
+                ballId={liftedBall.id}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -122,6 +139,8 @@ export const TubeView: React.FC<TubeViewProps> = ({
           width: `${tubeWidth}px`,
           height: `${tubeHeight}px`,
           paddingBottom: '10px',
+          transformOrigin: '50% 100%',
+          animation: thud > 0 ? `${thud % 2 ? 'tube-thud-a' : 'tube-thud-b'} 380ms cubic-bezier(.3,1.5,.6,1)` : undefined,
         }}
       >
         {/* Beaker Rim / Lip */}
@@ -156,15 +175,22 @@ export const TubeView: React.FC<TubeViewProps> = ({
 
         {/* Stacked Balls inside the tube (Bottom to Top) */}
         <div className="relative z-10 flex flex-col-reverse items-center justify-start w-full gap-1.5">
-          {restingBalls.map((ball) => (
+          {restingBalls.map((ball, bi) => (
             <div
               key={ball.id}
               className="transform transition-transform duration-200 active:scale-95"
+              style={
+                celebrate > 0 && isComplete
+                  ? { animation: `${celebrate % 2 ? 'ball-hop-a' : 'ball-hop-b'} 620ms ${bi * 70}ms cubic-bezier(.3,1.4,.6,1) both` }
+                  : undefined
+              }
             >
               <BallView
                 color={ball.color}
                 skin={ballSkin}
                 size={ballSize}
+                ballId={ball.id}
+                hidden={hiddenBallIds?.has(ball.id)}
               />
             </div>
           ))}

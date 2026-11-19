@@ -203,12 +203,14 @@ export default function App() {
       setLastRewards({ coins: res.summary.coins, xp: res.summary.xp, unlocked: res.summary.unlocked, leveledUpTo: res.summary.leveledUpTo });
       res.summary.unlocked.forEach((a) => unlockAchievement(a.id));
 
-      soundManager.playVictory();
-      soundManager.triggerHaptic(50);
+      setTimeout(() => {
+        soundManager.playVictory();
+        soundManager.triggerHaptic(50);
+      }, 480);
 
       setTimeout(() => {
         setShowVictoryModal(true);
-      }, 250);
+      }, 800); // let the last ball land and the tube celebrate first
       return true;
     }
     return false;
@@ -307,13 +309,17 @@ export default function App() {
       isComplete: isTubeCompleted(t.balls.map((b) => b.color), t.maxCapacity, rawColorsAfterMove),
     }));
 
-    if (newTubes[tubeIndex].isComplete) {
-      soundManager.playTubeComplete();
-      soundManager.triggerHaptic(35);
-    }
-
-    soundManager.playDrop(targetTube.balls.length + 1);
-    soundManager.triggerHaptic(15);
+    // sounds and buzz land with the ball (it takes ~0.3s to fly), not when the finger lifts
+    const landDepth = targetTube.balls.length + 1;
+    const completes = newTubes[tubeIndex].isComplete;
+    setTimeout(() => {
+      soundManager.playDrop(landDepth);
+      soundManager.triggerHaptic(15);
+      if (completes) {
+        soundManager.playTubeComplete();
+        soundManager.triggerHaptic(35);
+      }
+    }, 300);
 
     // Record in history for Undo
     setMoveHistory((prev) => [

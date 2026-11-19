@@ -8,6 +8,8 @@ interface BallViewProps {
   isSelected?: boolean;
   size?: number; // pixel diameter
   className?: string;
+  ballId?: string; // lets the board find this ball to animate it between tubes
+  hidden?: boolean; // hidden while its flying copy is in the air
 }
 
 export const BallView: React.FC<BallViewProps> = ({
@@ -16,14 +18,18 @@ export const BallView: React.FC<BallViewProps> = ({
   isSelected = false,
   size = 52,
   className = '',
+  ballId,
+  hidden = false,
 }) => {
   const colorDetails = getColorDetails(color);
 
   return (
     <div
+      data-ball-id={ballId}
       style={{
         width: `${size}px`,
         height: `${size}px`,
+        visibility: hidden ? 'hidden' : undefined,
       }}
       className={`relative rounded-full shrink-0 flex items-center justify-center transition-all duration-200 ${
         isSelected

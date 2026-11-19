@@ -69,7 +69,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   return (
     <div className="fixed inset-0 z-40 flex justify-center overflow-y-auto p-4 bg-black/80 animate-in fade-in duration-200 select-none">
       {/* my-auto centres the card, and lets it scroll from the top when many rewards make it taller than the screen */}
-      <div className="relative my-auto w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl flex flex-col items-center text-center">
+      <div className="relative my-auto w-full max-w-sm rounded-3xl bg-slate-900 border border-emerald-500/40 p-6 shadow-2xl flex flex-col items-center text-center animate-card-pop">
         {/* Glow backdrop */}
         <div className="absolute -top-12 w-32 h-32 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.35) 0%, rgba(16,185,129,0) 70%)' }} />
 
@@ -89,11 +89,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             return (
               <div
                 key={starIndex}
-                className={`transition-all duration-300 transform ${
-                  isEarned
-                    ? 'scale-110 text-amber-400'
-                    : 'text-slate-700 scale-95'
-                }`}
+                className={`transform ${isEarned ? 'scale-110 text-amber-400' : 'text-slate-700 scale-95'}`}
+                style={isEarned ? { animation: `star-pop 520ms ${300 + starIndex * 220}ms cubic-bezier(.3,1.4,.5,1) both` } : undefined}
               >
                 <Star
                   className={`w-9 h-9 ${isEarned ? 'fill-amber-400' : 'fill-slate-800'}`}
