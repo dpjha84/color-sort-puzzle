@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.colorsort.odyssey',
-  appName: 'ColorSort Odyssey',
+  appName: 'ColorSort',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

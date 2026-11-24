@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tube, Move, BallSkin, TubeSkin, BackgroundTheme, PlayerProfile, RewardType } from './types/game';
-import { generateLevel } from './utils/levels';
+import { generateLevel, generateDaily, dailyPoints, todayUTC, DailyConfig } from './utils/levels';
+import { LevelConfig } from './types/game';
+import { DailyVictoryModal } from './components/DailyVictoryModal';
+import { maybeRequestReview } from './utils/review';
+import { CloudSave, isValidSave, mergeSaves, hasProgress } from './utils/cloudSave';
 import { isBoardSolved, isTubeCompleted, getValidMoves, getHint } from './utils/solver';
 import { soundManager } from './utils/audio';
 import {
@@ -25,9 +29,9 @@ import { AmbientBackground } from './components/AmbientBackground';
 import { HomeScreen } from './components/HomeScreen';
 import { VictoryRewards } from './types/game';
 import {
-  ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel,
+  ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel, applyDailyWin, DailyResult,
 } from './utils/progress';
-import { unlockAchievement, submitScore, syncProgress } from './utils/playGames';
+import { unlockAchievement, submitScore, syncProgress, submitDailyScore, showDailyLeaderboard, hasDailyLeaderboard, loadCloudSave, saveCloudSave } from './utils/playGames';
 
 export default function App() {
   // Player Profile & Preferences
@@ -48,12 +52,21 @@ export default function App() {
   const [lastRewards, setLastRewards] = useState<VictoryRewards>({ coins: 0, xp: 0, unlocked: [], leveledUpTo: null });
   const assistedRef = useRef(false); // hint or undo used this round
 
+  // Daily challenge mode (campaign progress is untouched while playing it)
+  const [mode, setMode] = useState<'campaign' | 'daily'>('campaign');
+  const [dailyCfg, setDailyCfg] = useState<DailyConfig | null>(null);
+  const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
+  const [showDailyVictory, setShowDailyVictory] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
   // Game Play State
   const [currentLevel, setCurrentLevel] = useState(() => profile.currentLevel || 1);
   const [tubes, setTubes] = useState<Tube[]>([]);
   const [selectedTubeIndex, setSelectedTubeIndex] = useState<number | null>(null);
   const [moveHistory, setMoveHistory] = useState<Move[]>([]);
   const [movesCount, setMovesCount] = useState(0);
+  const moveHistoryRef = useRef<Move[]>([]);
+  moveHistoryRef.current = moveHistory;
   const [targetMoves, setTargetMoves] = useState(10);
   const [timeSeconds, setTimeSeconds] = useState(0);
   const [isGameActive, setIsGameActive] = useState(true);
@@ -79,8 +92,7 @@ export default function App() {
   const [lastStarsEarned, setLastStarsEarned] = useState(3);
 
   // Initial Level Setup
-  const loadLevel = useCallback((lvl: number) => {
-    const config = generateLevel(lvl);
+  const loadBoard = useCallback((config: LevelConfig) => {
     const initialTubes: Tube[] = config.initialTubes.map((ballColors, idx) => ({
       id: idx,
       balls: ballColors.map((color, bIdx) => ({
@@ -104,12 +116,27 @@ export default function App() {
     setHintTargetIndex(null);
     setShowVictoryModal(false);
     setShowFailedModal(false);
+    setShowDailyVictory(false);
   }, []);
+  const loadLevel = useCallback((lvl: number) => {
+    setMode('campaign');
+    setDailyCfg(null);
+    loadBoard(generateLevel(lvl));
+  }, [loadBoard]);
+  const startDaily = useCallback(() => {
+    const cfg = generateDaily(todayUTC());
+    setMode('daily');
+    setDailyCfg(cfg);
+    setDailyResult(null);
+    loadBoard(cfg);
+    goGameRef.current();
+  }, [loadBoard]);
+  const goGameRef = useRef<() => void>(() => {});
 
   // Timer loop
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (screen === 'game' && isGameActive && !showVictoryModal && !showFailedModal) {
+    if (screen === 'game' && isGameActive && !showVictoryModal && !showDailyVictory && !showFailedModal) {
       timerRef.current = setInterval(() => {
         setTimeSeconds((s) => s + 1);
       }, 1000);
@@ -117,7 +144,7 @@ export default function App() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [screen, isGameActive, showVictoryModal, showFailedModal]);
+  }, [screen, isGameActive, showVictoryModal, showDailyVictory, showFailedModal]);
 
   // Navigation: Play pushes a history entry so the Android back button returns to home (and back on home exits)
   const goGame = useCallback(() => {
@@ -128,6 +155,7 @@ export default function App() {
       /* history unavailable: the Home button still works */
     }
   }, []);
+  goGameRef.current = goGame;
   const goHome = useCallback(() => {
     try {
       if (window.history.state?.screen === 'game') {
@@ -148,6 +176,48 @@ export default function App() {
   // Push earned achievements/score to Play Games once at launch (no-op when signed out)
   useEffect(() => {
     syncProgress(Object.keys(progressRef.current.unlocked), profile.totalScore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ---- Cloud save (Play Games Saved Games) ----
+  const snapshot = (): CloudSave => ({ v: 1, savedAt: Date.now(), profile: getPlayerProfile(), progress: progressRef.current });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const queueCloudSave = () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const snap = snapshot();
+      if (hasProgress(snap)) saveCloudSave(snap);
+    }, 4000);
+  };
+  const flushCloudSave = () => {
+    if (!saveTimer.current) return;
+    clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    const snap = snapshot();
+    if (hasProgress(snap)) saveCloudSave(snap);
+  };
+  useEffect(() => {
+    // restore / merge once at launch, only before the player has started a board this session
+    (async () => {
+      const raw = await loadCloudSave();
+      if (!isValidSave(raw)) return;
+      const local = snapshot();
+      const { merged, winner } = mergeSaves(local, raw);
+      if (winner === 'cloud') {
+        savePlayerProfile(merged.profile);
+        setProfile(merged.profile);
+        setProgress(merged.progress);
+        if (!moveHistoryRef.current.length) {
+          setCurrentLevel(merged.profile.currentLevel);
+          loadLevel(merged.profile.currentLevel);
+        }
+        setToast('Progress restored from your Google Play Games account');
+        setTimeout(() => setToast(null), 3500);
+      }
+    })();
+    const onHide = () => { if (document.visibilityState === 'hidden') flushCloudSave(); };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -184,6 +254,24 @@ export default function App() {
       }
 
       setLastStarsEarned(stars);
+
+      if (mode === 'daily' && dailyCfg) {
+        const pts = dailyPoints(movesCount + 1, targetMoves, timeSeconds);
+        const counted = dailyCfg.date === todayUTC(); // a puzzle left open past midnight is practice only
+        let res: DailyResult = { first: false, coins: 0, gems: 0, xp: 0, streak: progressRef.current.daily.streak, points: pts, bestToday: pts, improved: false };
+        if (counted) {
+          const out = applyDailyWin(progressRef.current, dailyCfg.date, pts);
+          setProgress(out.state); // applyDailyWin already pays the rewards
+          res = out.result;
+          submitDailyScore(pts);
+          queueCloudSave();
+        }
+        setDailyResult(res);
+        setTimeout(() => { soundManager.playVictory(); soundManager.triggerHaptic(50); }, 480);
+        setTimeout(() => setShowDailyVictory(true), 800);
+        return true;
+      }
+
       const { levelScore, profile: updatedProfile } = updatePlayerScoreOnWin(
         currentLevel,
         movesCount + 1,
@@ -203,6 +291,8 @@ export default function App() {
       setProgress(res.state);
       setLastRewards({ coins: res.summary.coins, xp: res.summary.xp, unlocked: res.summary.unlocked, leveledUpTo: res.summary.leveledUpTo });
       res.summary.unlocked.forEach((a) => unlockAchievement(a.id));
+      queueCloudSave();
+      if (stars === 3) maybeRequestReview(res.state.stats.levelsWon);
 
       setTimeout(() => {
         soundManager.playVictory();
@@ -394,6 +484,11 @@ export default function App() {
   // Reset Level
   const handleReset = () => {
     soundManager.playClick();
+    if (mode === 'daily' && dailyCfg) {
+      setDailyResult(null);
+      loadBoard(dailyCfg);
+      return;
+    }
     loadLevel(currentLevel);
   };
 
@@ -617,6 +712,7 @@ export default function App() {
           isMuted={isMuted}
           onPlay={() => {
             soundManager.playClick();
+            if (mode === 'daily') loadLevel(currentLevel); // back to the campaign
             goGame();
           }}
           onOpenLevels={() => {
@@ -640,12 +736,20 @@ export default function App() {
             setShowAndroidInstallModal(true);
           }}
           onToggleSound={handleToggleSound}
+          daily={progress.daily}
+          hasDailyLeaderboard={hasDailyLeaderboard()}
+          onStartDaily={() => { soundManager.playClick(); startDaily(); }}
+          onOpenDailyLeaderboard={() => {
+            soundManager.playClick();
+            showDailyLeaderboard().then((ok) => { if (!ok) { setToast('Sign in to Play Games to see the leaderboard'); setTimeout(() => setToast(null), 3000); } });
+          }}
         />
       ) : (
         <>
       {/* Top Header & Ergonomic Tools */}
       <Header
         levelNumber={currentLevel}
+        levelLabel={mode === 'daily' ? 'Daily' : undefined}
         movesCount={movesCount}
         targetMoves={targetMoves}
         onOpenRewards={() => setShowRewardsModal(true)}
@@ -700,6 +804,10 @@ export default function App() {
 
       {showAdDebug && <AdDebugPanel onClose={() => setShowAdDebug(false)} />}
 
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-800 text-white text-xs border border-white/20 shadow-lg">{toast}</div>
+      )}
+
       {adNotice && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-800 text-white text-xs border border-white/20 shadow-lg">
           {adNotice}
@@ -728,10 +836,27 @@ export default function App() {
         onDoubleScoreWithAd={handleDoubleScoreWithAd}
       />
 
+      <DailyVictoryModal
+        isOpen={showDailyVictory && screen === 'game' && mode === 'daily'}
+        date={dailyCfg?.date ?? ''}
+        difficulty={dailyCfg?.difficulty ?? ''}
+        movesCount={movesCount}
+        timeSeconds={timeSeconds}
+        targetMoves={targetMoves}
+        starsEarned={lastStarsEarned}
+        result={dailyResult}
+        counted={!!dailyCfg && dailyCfg.date === todayUTC()}
+        hasLeaderboard={hasDailyLeaderboard()}
+        onLeaderboard={() => { showDailyLeaderboard(); }}
+        onPlayAgain={handleReset}
+        onHome={() => { setShowDailyVictory(false); goHome(); }}
+      />
+
       {/* 3. Level Failed / Deadlock Modal with Revive Ads & Retry */}
       <FailedModal
         isOpen={showFailedModal && screen === 'game'}
         levelNumber={currentLevel}
+        label={mode === 'daily' ? 'Daily' : undefined}
         onRetry={() => {
           setShowFailedModal(false);
           handleReset();

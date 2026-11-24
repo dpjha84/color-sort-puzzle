@@ -4,6 +4,9 @@ import { Capacitor } from '@capacitor/core';
 import { PlayGames } from '@idleflowgames/capacitor-play-games';
 
 export const PLAY_LEADERBOARD_ID = 'CggInaup8GwQAhAB';
+// Daily Challenge leaderboard (create it in Play Console, then paste its ID here; empty = hidden)
+export const PLAY_DAILY_LEADERBOARD_ID = 'CggInaup8GwQAhAa';
+export const hasDailyLeaderboard = () => PLAY_DAILY_LEADERBOARD_ID !== '';
 export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
   first_clear: 'CggInaup8GwQAhAC',
   clear_10: 'CggInaup8GwQAhAD',
@@ -132,4 +135,59 @@ export async function syncProgress(unlockedIds: string[], score: number): Promis
   if (!(await signedIn())) return;
   for (const id of unlockedIds) await unlockAchievement(id);
   if (score > 0) await submitScore(score);
+}
+
+
+export async function submitDailyScore(points: number): Promise<void> {
+  if (!hasDailyLeaderboard() || !(await signedIn())) return;
+  try { await PlayGames.submitScore({ leaderboardId: PLAY_DAILY_LEADERBOARD_ID, score: points }); } catch { /* ignore */ }
+}
+
+// Opens the Daily Challenge leaderboard (falls back to the main one until the daily one is configured).
+export async function showDailyLeaderboard(): Promise<boolean> {
+  if (!hasDailyLeaderboard()) return showLeaderboard();
+  if (!native()) return false;
+  try {
+    await initPlayGames();
+    if (!(await PlayGames.isSignedIn()).signedIn) {
+      const r = await PlayGames.signIn({ silent: false });
+      if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
+    }
+    await PlayGames.showLeaderboard({ leaderboardId: PLAY_DAILY_LEADERBOARD_ID });
+    return true;
+  } catch (e) {
+    lastIssue = errText(e);
+    return false;
+  }
+}
+
+// ---------------- Cloud save (Play Games Saved Games) ----------------
+const SNAPSHOT_NAME = 'colorsort_save_v1';
+
+/** The saved game, or null when signed out / no save / unreadable. Never throws. */
+export async function loadCloudSave(): Promise<unknown | null> {
+  if (!(await signedIn())) return null;
+  try {
+    const { snapshot } = await PlayGames.loadSnapshot({ name: SNAPSHOT_NAME });
+    return snapshot?.data ? JSON.parse(snapshot.data) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCloudSave(save: unknown): Promise<boolean> {
+  if (!(await signedIn())) return false;
+  try {
+    const p = await PlayGames.getPlayer();
+    await PlayGames.saveSnapshot({
+      name: SNAPSHOT_NAME,
+      data: JSON.stringify(save),
+      description: 'ColorSort progress',
+      expectedPlayerId: p.playerId,
+    });
+    return true;
+  } catch (e) {
+    lastIssue = errText(e);
+    return false;
+  }
 }

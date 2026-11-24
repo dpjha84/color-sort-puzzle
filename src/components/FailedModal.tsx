@@ -5,6 +5,7 @@ import { soundManager } from '../utils/audio';
 interface FailedModalProps {
   isOpen: boolean;
   levelNumber: number;
+  label?: string; // e.g. "today's daily challenge"
   onRetry: () => void;
   watchRewardedAd: (onReward: () => void) => void;
   onWatchAdForTube: () => void;
@@ -14,6 +15,7 @@ interface FailedModalProps {
 export const FailedModal: React.FC<FailedModalProps> = ({
   isOpen,
   levelNumber,
+  label,
   onRetry,
   watchRewardedAd,
   onWatchAdForTube,
@@ -45,7 +47,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
 
             <h3 className="text-xl font-extrabold text-white">No Valid Moves Left!</h3>
             <p className="text-xs text-slate-300 mt-1 max-w-[260px]">
-              You reached a deadlock on Level {levelNumber}. Don't worry! Pick a revive option below:
+              You reached a deadlock on {label ?? `Level ${levelNumber}`}. Don't worry! Pick a revive option below:
             </p>
 
             {/* In-Game Ad Sponsor Banner */}
@@ -106,7 +108,7 @@ export const FailedModal: React.FC<FailedModalProps> = ({
                 className="w-full py-2.5 px-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 border border-white/15 active:scale-98 transition-all"
               >
                 <RotateCcw className="w-4 h-4 text-slate-300" />
-                <span>Retry Level {levelNumber}</span>
+                <span>Retry {label ?? `Level ${levelNumber}`}</span>
               </button>
             </div>
           </>

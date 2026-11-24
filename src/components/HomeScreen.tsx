@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import {
   Play,
@@ -12,11 +12,16 @@ import {
   Instagram,
   Star,
   Share2,
+  CalendarDays,
+  Flame,
+  Check,
 } from 'lucide-react';
+import { DailyState, liveDailyStreak } from '../utils/progress';
+import { dailyDifficultyFor, todayUTC } from '../utils/levels';
 
 export const INSTAGRAM_URL = 'https://www.instagram.com/pixelpocket.apps/';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.colorsort.odyssey';
-const APP_VERSION = '1.0.6';
+const APP_VERSION = '1.0.7';
 
 const compact = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1).replace(/\.0$/, '')}K` : String(n));
 
@@ -36,6 +41,10 @@ interface HomeScreenProps {
   onOpenSkins: () => void;
   onOpenAndroidInstall: () => void;
   onToggleSound: () => void;
+  daily: DailyState;
+  hasDailyLeaderboard: boolean;
+  onStartDaily: () => void;
+  onOpenDailyLeaderboard: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -54,9 +63,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenSkins,
   onOpenAndroidInstall,
   onToggleSound,
+  daily,
+  hasDailyLeaderboard,
+  onStartDaily,
+  onOpenDailyLeaderboard,
 }) => {
   const [notice, setNotice] = useState<string | null>(null);
   const isNative = Capacitor.isNativePlatform();
+
+  // Daily challenge: ticks once a second so the countdown and the new-day rollover stay live
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const today = new Date(now).toISOString().slice(0, 10) || todayUTC();
+  const dailyDone = daily.lastDate === today;
+  const streak = liveDailyStreak(daily, today);
+  const msLeft = Math.max(0, Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), new Date(now).getUTCDate() + 1) - now);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const countdown = `${pad(Math.floor(msLeft / 3600000))}:${pad(Math.floor((msLeft % 3600000) / 60000))}:${pad(Math.floor((msLeft % 60000) / 1000))}`;
 
   const flash = (msg: string) => {
     setNotice(msg);
@@ -64,10 +90,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const share = async () => {
-    const text = `I'm playing ColorSort Odyssey, a free ball-sort puzzle. Try it: ${PLAY_STORE_URL}`;
+    const text = `I'm playing ColorSort, a free ball-sort puzzle. Try it: ${PLAY_STORE_URL}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: 'ColorSort Odyssey', text });
+        await navigator.share({ title: 'ColorSort', text });
         return;
       }
     } catch (e) {
@@ -106,7 +132,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             ))}
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight leading-tight">
-            ColorSort <span className="text-amber-300">Odyssey</span>
+            Color<span className="text-amber-300">Sort</span>
           </h1>
           <p className="text-xs text-white/60">Sort the colours. Clear the tubes.</p>
         </div>
@@ -137,6 +163,37 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <span>{hasPlayed ? 'Continue' : 'Play'}</span>
           <span className="text-base font-bold opacity-70">· Level {level}</span>
         </button>
+
+        {/* Daily challenge */}
+        <div className="w-full rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 p-3 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-400/15 flex items-center justify-center">
+              {dailyDone ? <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} /> : <CalendarDays className="w-5 h-5 text-amber-300" />}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-extrabold text-white">Daily Challenge</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-amber-200">{dailyDifficultyFor(today)}</span>
+              </div>
+              <div className="text-[11px] text-white/60 truncate">
+                {dailyDone ? `Done today · best ${daily.todayPoints.toLocaleString('en-US')} pts` : `Win for +${100 + Math.min(Math.max(streak, 0), 6) * 20} 🪙 and your streak`}
+              </div>
+            </div>
+            <button
+              onClick={onStartDaily}
+              className="shrink-0 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-sm px-4 py-2 active:scale-95 transition-transform"
+            >
+              {dailyDone ? 'Retry' : 'Play'}
+            </button>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-white/60">
+            <span className="flex items-center gap-1 font-semibold text-orange-300"><Flame className="w-3.5 h-3.5" />{streak > 0 ? `${streak}-day streak` : 'Start a streak'}</span>
+            <span className="tabular-nums">New puzzle in {countdown}</span>
+            <button onClick={onOpenDailyLeaderboard} className="flex items-center gap-1 font-semibold text-white/80 underline underline-offset-2">
+              <Trophy className="w-3.5 h-3.5 text-amber-300" />{hasDailyLeaderboard ? 'Leaderboard' : 'Ranks'}
+            </button>
+          </div>
+        </div>
 
         {/* Secondary actions */}
         <div className="w-full grid grid-cols-3 gap-2.5">

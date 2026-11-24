@@ -15,6 +15,7 @@ const compact = (n: number) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ?
 
 interface HeaderProps {
   levelNumber: number;
+  levelLabel?: string; // overrides "Lv. N" (daily challenge)
   movesCount: number;
   targetMoves: number;
   hintsRemaining: number;
@@ -41,6 +42,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   levelNumber,
+  levelLabel,
   movesCount,
   targetMoves,
   hintsRemaining,
@@ -76,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
             title="Select Level"
           >
             <LayoutGrid className="w-3.5 h-3.5 text-amber-400" />
-            <span>Lv. {levelNumber}</span>
+            <span>{levelLabel ?? `Lv. ${levelNumber}`}</span>
           </button>
         </div>
 

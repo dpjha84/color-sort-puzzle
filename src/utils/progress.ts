@@ -16,6 +16,15 @@ export interface Stats {
   lastWinDate: string; // YYYY-MM-DD (local)
 }
 
+export interface DailyState {
+  lastDate: string; // last UTC day the daily challenge was won (rewards paid)
+  streak: number; // consecutive UTC days with a daily win
+  bestStreak: number;
+  totalWins: number;
+  bestPoints: number; // best single-day score
+  todayPoints: number; // best score on lastDate
+}
+
 export interface ProgressState {
   coins: number;
   gems: number;
@@ -23,6 +32,7 @@ export interface ProgressState {
   unlocked: Record<string, number>; // achievement id -> unlock timestamp
   stats: Stats;
   levelStars: Record<number, number>; // best stars per level (1-3)
+  daily: DailyState;
 }
 
 export interface Reward { coins: number; gems: number; xp: number }
@@ -65,12 +75,15 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 const KEY = 'colorsort_progress_v1';
 
+const freshDaily = (): DailyState => ({ lastDate: '', streak: 0, bestStreak: 0, totalWins: 0, bestPoints: 0, todayPoints: 0 });
+
 const fresh = (): ProgressState => ({
   coins: 50,
   gems: 0,
   xp: 0,
   unlocked: {},
   levelStars: {},
+  daily: freshDaily(),
   stats: {
     levelsWon: 0, maxLevelCleared: 0, threeStarWins: 0, starsEarned: 0, noAssistWins: 0,
     fastWins: 0, blitzWins: 0, topRank: 1, hintsUsed: 0, styleChanges: 0, streak: 0, bestStreak: 0, lastWinDate: '',
@@ -83,7 +96,7 @@ export function loadProgress(currentLevel = 1): ProgressState {
     if (raw) {
       const p = JSON.parse(raw);
       const base = fresh();
-      return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, unlocked: p.unlocked || {}, levelStars: p.levelStars || {} };
+      return { ...base, ...p, stats: { ...base.stats, ...(p.stats || {}) }, unlocked: p.unlocked || {}, levelStars: p.levelStars || {}, daily: { ...base.daily, ...(p.daily || {}) } };
     }
   } catch { /* ignore */ }
   // Existing players: credit levels they already cleared so they don't start from zero
@@ -196,4 +209,64 @@ export function applyPurchase(prev: ProgressState, item: ShopItem): ProgressStat
   const it = SHOP.find((s) => s.id === item)!;
   if ((it.coins ?? 0) > prev.coins || (it.gems ?? 0) > prev.gems) return null;
   return { ...prev, coins: prev.coins - (it.coins ?? 0), gems: prev.gems - (it.gems ?? 0) };
+}
+
+
+// ---------------- Daily challenge ----------------
+export interface DailyResult {
+  first: boolean; // first win today: rewards paid
+  coins: number;
+  gems: number;
+  xp: number;
+  streak: number;
+  points: number;
+  bestToday: number; // best score today after this win
+  improved: boolean; // beat an earlier score today
+}
+
+const dayBefore = (date: string): string => {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Pays the daily reward once per UTC day (streak bonus), and tracks the best score. Replays only update the score. */
+export function applyDailyWin(prev: ProgressState, date: string, points: number): { state: ProgressState; result: DailyResult } {
+  const d = prev.daily;
+  const first = d.lastDate !== date;
+  const bestToday = first ? points : Math.max(d.todayPoints, points);
+  const improved = !first && points > d.todayPoints;
+  if (!first) {
+    return {
+      state: { ...prev, daily: { ...d, todayPoints: bestToday, bestPoints: Math.max(d.bestPoints, points) } },
+      result: { first: false, coins: 0, gems: 0, xp: 0, streak: d.streak, points, bestToday, improved },
+    };
+  }
+  const streak = d.lastDate === dayBefore(date) ? d.streak + 1 : 1;
+  const coins = 100 + Math.min(streak - 1, 6) * 20;
+  const gems = streak % 7 === 0 ? 5 : streak % 3 === 0 ? 1 : 0;
+  const xp = 40;
+  return {
+    state: {
+      ...prev,
+      coins: prev.coins + coins,
+      gems: prev.gems + gems,
+      xp: prev.xp + xp,
+      stats: { ...prev.stats, topRank: Math.max(prev.stats.topRank, playerLevel(prev.xp + xp).level) },
+      daily: {
+        lastDate: date,
+        streak,
+        bestStreak: Math.max(d.bestStreak, streak),
+        totalWins: d.totalWins + 1,
+        bestPoints: Math.max(d.bestPoints, points),
+        todayPoints: points,
+      },
+    },
+    result: { first: true, coins, gems, xp, streak, points, bestToday, improved: false },
+  };
+}
+
+/** Streak still alive today (won today or yesterday); otherwise it has lapsed. */
+export function liveDailyStreak(d: DailyState, today: string): number {
+  return d.lastDate === today || d.lastDate === dayBefore(today) ? d.streak : 0;
 }

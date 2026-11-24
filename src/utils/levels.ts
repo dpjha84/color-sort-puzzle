@@ -98,8 +98,8 @@ const CURATED_LEVELS: Record<number, BallColor[][]> = {
  * Generate a level with guaranteed solvability by simulating reverse moves
  * from a solved state.
  */
-export function generateLevel(levelNum: number): LevelConfig {
-  if (CURATED_LEVELS[levelNum]) {
+export function generateLevel(levelNum: number, salt = 0): LevelConfig {
+  if (salt === 0 && CURATED_LEVELS[levelNum]) {
     const initialTubes = CURATED_LEVELS[levelNum];
     const colors = new Set<BallColor>();
     initialTubes.forEach((t) => t.forEach((c) => colors.add(c)));
@@ -129,7 +129,7 @@ export function generateLevel(levelNum: number): LevelConfig {
   const selectedColors = COLOR_PALETTE.slice(0, numColors).map((c) => c.color);
 
   // Seeded, so a level is the same board every time it is played (stars/score stay comparable)
-  const rand = mulberry32(levelNum * 7919 + 13);
+  const rand = mulberry32(levelNum * 7919 + 13 + salt * 104729);
   // Legal reverse moves are restrictive, so it takes many of them to scramble a board properly
   const shuffleSteps = 160 + Math.min(240, levelNum * 5);
   const minMisplaced = levelNum <= 6 ? 0 : levelNum <= 20 ? 0.5 : levelNum <= 35 ? 0.6 : 0.65;
@@ -238,4 +238,31 @@ function misplacedShare(tubes: BallColor[][]): number {
 
 export function getColorDetails(color: BallColor) {
   return COLOR_PALETTE.find((c) => c.color === color) || COLOR_PALETTE[0];
+}
+
+
+// ---------------- Daily challenge ----------------
+// One puzzle per UTC day, the same for every player, harder later in the week.
+export interface DailyConfig extends LevelConfig {
+  date: string; // YYYY-MM-DD (UTC)
+  difficulty: string;
+}
+const DAILY_LEVEL_BY_WEEKDAY = [44, 14, 18, 22, 26, 30, 36]; // Sun..Sat
+const DAILY_LABEL_BY_WEEKDAY = ['Expert', 'Easy', 'Easy', 'Medium', 'Medium', 'Hard', 'Hard'];
+
+export const todayUTC = (): string => new Date().toISOString().slice(0, 10);
+
+export const dailyDifficultyFor = (date: string): string => DAILY_LABEL_BY_WEEKDAY[new Date(`${date}T00:00:00Z`).getUTCDay()];
+
+export function generateDaily(date: string): DailyConfig {
+  const d = new Date(`${date}T00:00:00Z`);
+  const dow = d.getUTCDay();
+  const salt = d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+  const cfg = generateLevel(DAILY_LEVEL_BY_WEEKDAY[dow], salt);
+  return { ...cfg, date, difficulty: DAILY_LABEL_BY_WEEKDAY[dow] };
+}
+
+/** Score for the daily leaderboard: fewer moves and a faster solve both score higher. */
+export function dailyPoints(moves: number, target: number, seconds: number): number {
+  return Math.max(100, Math.round(1000 + (target - moves) * 40 + Math.max(0, 120 - seconds) * 4));
 }
