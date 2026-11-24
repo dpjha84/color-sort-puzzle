@@ -114,12 +114,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   const tile =
-    'flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95 border border-white/10 py-3 px-1 text-white transition-all min-w-0';
+    'flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white/10 hover:bg-white/15 active:scale-95 border border-white/10 py-2.5 px-1 text-white transition-all min-w-0';
   const tileLabel = 'text-[11px] font-semibold text-white/80 max-w-full truncate';
 
   return (
     <div className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain">
-      <div className="min-h-full w-full max-w-sm mx-auto px-5 py-3 flex flex-col items-center justify-center gap-5 [@media(max-height:560px)]:gap-3 select-none">
+      <div className="min-h-full w-full max-w-sm mx-auto px-5 py-3 flex flex-col items-center justify-center gap-4 [@media(max-height:560px)]:gap-2.5 select-none">
         {/* Brand */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex items-end gap-1" aria-hidden>
@@ -170,35 +170,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <span className="text-base font-bold opacity-70">· Level {level}</span>
         </button>
 
-        {/* Daily challenge */}
-        <div className="w-full rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 p-3 flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-400/15 flex items-center justify-center">
-              {dailyDone ? <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} /> : <CalendarDays className="w-5 h-5 text-amber-300" />}
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-extrabold text-white">Daily Challenge</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-amber-200">{dailyDifficultyFor(today)}</span>
-              </div>
-              <div className="text-[11px] text-white/60 truncate">
-                {dailyDone ? `Done today · best ${daily.todayPoints.toLocaleString('en-US')} pts` : `Win for +${100 + Math.min(Math.max(streak, 0), 6) * 20} 🪙 and your streak`}
-              </div>
-            </div>
-            <button
-              onClick={onStartDaily}
-              className="shrink-0 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-sm px-4 py-2 active:scale-95 transition-transform"
-            >
-              {dailyDone ? 'Retry' : 'Play'}
-            </button>
+        {/* Daily challenge: one compact row */}
+        <div className="w-full rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 px-3 py-2.5 flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-400/15 flex items-center justify-center">
+            {dailyDone ? <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} /> : <CalendarDays className="w-5 h-5 text-amber-300" />}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-white/60">
-            <span className="flex items-center gap-1 font-semibold text-orange-300"><Flame className="w-3.5 h-3.5" />{streak > 0 ? `${streak}-day streak` : 'Start a streak'}</span>
-            <span className="tabular-nums">New puzzle in {countdown}</span>
-            <button onClick={onOpenDailyLeaderboard} className="flex items-center gap-1 font-semibold text-white/80 underline underline-offset-2">
-              <Trophy className="w-3.5 h-3.5 text-amber-300" />{hasDailyLeaderboard ? 'Leaderboard' : 'Ranks'}
-            </button>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-extrabold text-white whitespace-nowrap">Daily</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-amber-200 whitespace-nowrap">{dailyDifficultyFor(today)}</span>
+              {streak > 0 && (
+                <span className="flex items-center text-[11px] font-bold text-orange-300 whitespace-nowrap"><Flame className="w-3.5 h-3.5" />{streak}</span>
+              )}
+            </div>
+            <div className="text-[11px] text-white/60 truncate tabular-nums">
+              {dailyDone ? `Done · next in ${countdown}` : `Win today: +${100 + Math.min(Math.max(streak, 0), 6) * 20} 🪙`}
+            </div>
           </div>
+          <button
+            onClick={onOpenDailyLeaderboard}
+            aria-label="Daily leaderboard"
+            className="shrink-0 w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
+          >
+            <Trophy className="w-4 h-4 text-amber-300" />
+          </button>
+          <button
+            onClick={onStartDaily}
+            className="shrink-0 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-sm px-4 py-2 active:scale-95 transition-transform"
+          >
+            {dailyDone ? 'Retry' : 'Play'}
+          </button>
         </div>
 
         {/* Secondary actions */}
@@ -237,32 +238,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
 
         {/* Community */}
-        <div className="w-full flex flex-col items-center gap-2">
-          <div className="w-full flex gap-2.5">
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-w-0 flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-600/80 to-orange-500/80 text-white text-sm font-bold py-2.5 active:scale-95 transition-transform"
-            >
-              <Instagram className="w-4 h-4 shrink-0" />
-              <span className="truncate">Follow us</span>
+        <div className="w-full flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-5 text-xs font-semibold text-white/70">
+            <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 active:opacity-70">
+              <Instagram className="w-4 h-4 text-fuchsia-300" /> Follow us
             </a>
-            <a
-              href={PLAY_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 min-w-0 flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/15 text-white text-sm font-bold py-2.5 active:scale-95 transition-transform"
-            >
-              <Star className="w-4 h-4 shrink-0 text-amber-300" />
-              <span className="truncate">Rate us</span>
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 active:opacity-70">
+              <Star className="w-4 h-4 text-amber-300" /> Rate us
             </a>
+            {!isNative && (
+              <button onClick={share} className="flex items-center gap-1.5 active:opacity-70">
+                <Share2 className="w-4 h-4 text-sky-300" /> Share
+              </button>
+            )}
           </div>
-          {!isNative && (
-            <button onClick={share} className="text-xs font-semibold text-white/60 underline underline-offset-2">
-              Share with a friend
-            </button>
-          )}
           <p className="text-[10px] text-white/40">Pixel Pocket · v{APP_VERSION}</p>
         </div>
       </div>

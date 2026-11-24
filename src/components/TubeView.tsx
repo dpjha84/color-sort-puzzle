@@ -69,7 +69,7 @@ export const TubeView: React.FC<TubeViewProps> = ({
     >
       {/* Hint Indicator Overlay */}
       {isHintSource && (
-        <div className="absolute -top-12 z-30 flex flex-col items-center animate-bounce">
+        <div className="absolute top-0 z-30 flex flex-col items-center animate-bounce pointer-events-none">
           <div className="bg-amber-400 text-amber-950 text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg flex items-center gap-0.5">
             <ArrowUp className="w-3 h-3" />
             <span>PICK</span>
@@ -78,7 +78,7 @@ export const TubeView: React.FC<TubeViewProps> = ({
       )}
 
       {isHintTarget && (
-        <div className="absolute -top-12 z-30 flex flex-col items-center animate-bounce">
+        <div className="absolute top-0 z-30 flex flex-col items-center animate-bounce pointer-events-none">
           <div className="bg-emerald-400 text-emerald-950 text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg flex items-center gap-0.5">
             <ArrowDown className="w-3 h-3" />
             <span>DROP</span>
@@ -143,6 +143,24 @@ export const TubeView: React.FC<TubeViewProps> = ({
           animation: thud > 0 ? `${thud % 2 ? 'tube-thud-a' : 'tube-thud-b'} 380ms cubic-bezier(.3,1.5,.6,1)` : undefined,
         }}
       >
+        {/* State highlight: drawn as its own layer because .glass-tube sets its own box-shadow and would hide a ring */}
+        {(() => {
+          const c =
+            dropState === 'valid' ? '#34d399'
+            : dropState === 'invalid' ? '#f87171'
+            : isSelectedSource || isHintSource ? '#fbbf24'
+            : isHintTarget ? '#34d399'
+            : null;
+          if (!c) return null;
+          const hint = !isSelectedSource && dropState !== 'valid' && dropState !== 'invalid';
+          return (
+            <div
+              className={`absolute inset-0 pointer-events-none z-10 ${hint ? 'animate-pulse' : ''}`}
+              style={{ borderRadius: 'inherit', boxShadow: `0 0 0 2.5px ${c}, 0 0 22px ${c}99` }}
+            />
+          );
+        })()}
+
         {/* Beaker Rim / Lip */}
         <div
           className={`absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full border border-white/40 z-10 ${
