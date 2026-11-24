@@ -94,7 +94,7 @@ async function openPlayScreen(open: () => Promise<void>): Promise<boolean> {
       await open();
       return true;
     } catch (first) {
-      if (!/not signed in/i.test(errText(first))) throw first;
+      if (!/signed in|sign-in required|\[code 4\]/i.test(errText(first))) throw first;
       const r = await PlayGames.signIn({ silent: false }); // refresh the session, then retry once
       if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
       await open();

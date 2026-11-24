@@ -215,14 +215,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           </button>
           {globalMsg && <p className="text-center text-[11px] text-amber-300 break-words">{globalMsg}</p>}
           <p className="text-center text-[10px] text-slate-500 break-words">{pgStatus}</p>
-          <p className="text-center text-[10px] text-slate-500 break-words">
-            {cloudMsg || getCloudStatus()}{' '}
-            {onSyncCloud && (
-              <button onClick={syncNow} disabled={syncing} className="underline text-slate-300">
-                {syncing ? 'Syncing...' : 'Sync now'}
-              </button>
-            )}
-          </p>
+          {onSyncCloud && (
+            <button
+              onClick={syncNow}
+              disabled={syncing}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-slate-800 text-slate-100 font-bold text-sm border border-white/10 active:scale-95 transition-transform disabled:opacity-60"
+            >
+              {syncing ? 'Syncing...' : 'Sync cloud save'}
+            </button>
+          )}
+          <p className="text-center text-[10px] text-slate-500 break-words">{cloudMsg || getCloudStatus()}</p>
         </div>
       </div>
     </div>

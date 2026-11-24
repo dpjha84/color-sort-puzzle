@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
 import {
   Play,
   LayoutGrid,
@@ -92,12 +93,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const share = async () => {
     const text = `I'm playing ColorSort, a free ball-sort puzzle. Try it: ${PLAY_STORE_URL}`;
     try {
+      if (isNative) {
+        // Android WebView has no Web Share API: use the native share sheet (WhatsApp, Messages, ...)
+        await Share.share({ title: 'ColorSort', text, dialogTitle: 'Share ColorSort' });
+        return;
+      }
       if (navigator.share) {
         await navigator.share({ title: 'ColorSort', text });
         return;
       }
     } catch (e) {
-      if ((e as Error)?.name === 'AbortError') return; // player closed the share sheet
+      if ((e as Error)?.name === 'AbortError' || /cancel/i.test((e as Error)?.message ?? '')) return; // player closed the share sheet
     }
     try {
       await navigator.clipboard.writeText(text);
