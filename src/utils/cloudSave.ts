@@ -64,4 +64,5 @@ export function mergeSaves(local: CloudSave, cloud: CloudSave): { merged: CloudS
 }
 
 /** Does this save hold real progress (so a fresh install never uploads an empty save over a good one)? */
-export const hasProgress = (s: CloudSave) => (s.progress.stats?.levelsWon ?? 0) > 0 || (s.profile?.currentLevel ?? 1) > 1;
+export const hasProgress = (s: CloudSave) =>
+  (s.progress.stats?.levelsWon ?? 0) > 0 || (s.profile?.currentLevel ?? 1) > 1 || (s.progress.daily?.totalWins ?? 0) > 0 || (s.progress.xp ?? 0) > 0;

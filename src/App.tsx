@@ -31,7 +31,7 @@ import { VictoryRewards } from './types/game';
 import {
   ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel, applyDailyWin, DailyResult,
 } from './utils/progress';
-import { unlockAchievement, submitScore, syncProgress, submitDailyScore, showDailyLeaderboard, hasDailyLeaderboard, getLastIssue, loadCloudSave, saveCloudSave } from './utils/playGames';
+import { unlockAchievement, submitScore, syncProgress, submitDailyScore, showDailyLeaderboard, hasDailyLeaderboard, getLastIssue, getCloudStatus, loadCloudSave, saveCloudSave } from './utils/playGames';
 
 export default function App() {
   // Player Profile & Preferences
@@ -55,6 +55,8 @@ export default function App() {
   // Daily challenge mode (campaign progress is untouched while playing it)
   const [mode, setMode] = useState<'campaign' | 'daily'>('campaign');
   const [dailyCfg, setDailyCfg] = useState<DailyConfig | null>(null);
+  const modeRef = useRef<'campaign' | 'daily'>('campaign');
+  modeRef.current = mode;
   const [dailyResult, setDailyResult] = useState<DailyResult | null>(null);
   const [showDailyVictory, setShowDailyVictory] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -187,41 +189,49 @@ export default function App() {
 
   // ---- Cloud save (Play Games Saved Games) ----
   const snapshot = (): CloudSave => ({ v: 1, savedAt: Date.now(), profile: getPlayerProfile(), progress: progressRef.current });
+  const lastSavedSig = useRef('');
+  const sigOf = (c: CloudSave) => `${c.progress.xp}|${c.progress.coins}|${c.progress.gems}|${c.progress.stats.levelsWon}|${c.progress.stats.maxLevelCleared}|${c.progress.daily.totalWins}|${c.profile.currentLevel}|${Object.keys(c.progress.unlocked).length}`;
+  const saveNow = async () => {
+    const snap = snapshot();
+    if (!hasProgress(snap)) return;
+    const sig = sigOf(snap);
+    if (sig === lastSavedSig.current) return;
+    if (await saveCloudSave(snap)) lastSavedSig.current = sig;
+  };
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queueCloudSave = () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      const snap = snapshot();
-      if (hasProgress(snap)) saveCloudSave(snap);
-    }, 4000);
+    saveTimer.current = setTimeout(() => { saveTimer.current = null; saveNow(); }, 4000);
   };
-  const flushCloudSave = () => {
-    if (!saveTimer.current) return;
-    clearTimeout(saveTimer.current);
-    saveTimer.current = null;
-    const snap = snapshot();
-    if (hasProgress(snap)) saveCloudSave(snap);
-  };
-  useEffect(() => {
-    // restore / merge once at launch, only before the player has started a board this session
-    (async () => {
-      const raw = await loadCloudSave();
-      if (!isValidSave(raw)) return;
-      const local = snapshot();
-      const { merged, winner } = mergeSaves(local, raw);
+  // Pull the cloud copy, keep whichever side is further along, then push the merged result back.
+  const syncCloud = async (): Promise<string> => {
+    const raw = await loadCloudSave();
+    if (isValidSave(raw)) {
+      const { merged, winner } = mergeSaves(snapshot(), raw);
       if (winner === 'cloud') {
         savePlayerProfile(merged.profile);
         setProfile(merged.profile);
         setProgress(merged.progress);
-        if (!moveHistoryRef.current.length) {
+        if (!moveHistoryRef.current.length && modeRef.current === 'campaign') {
           setCurrentLevel(merged.profile.currentLevel);
           loadLevel(merged.profile.currentLevel);
         }
+        lastSavedSig.current = sigOf(merged);
         setToast('Progress restored from your Google Play Games account');
         setTimeout(() => setToast(null), 3500);
       }
-    })();
-    const onHide = () => { if (document.visibilityState === 'hidden') flushCloudSave(); };
+    }
+    await saveNow();
+    return getCloudStatus();
+  };
+  useEffect(() => {
+    syncCloud();
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') {
+        if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+        saveNow();
+      }
+    };
     document.addEventListener('visibilitychange', onHide);
     return () => document.removeEventListener('visibilitychange', onHide);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -880,6 +890,7 @@ export default function App() {
         playerProfile={profile}
         progress={progress}
         onProfileUpdated={(updated) => setProfile(updated)}
+        onSyncCloud={syncCloud}
       />
 
       {/* 6. Themes & Ball Skins Modal */}

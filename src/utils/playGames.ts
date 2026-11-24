@@ -152,19 +152,28 @@ export const showDailyLeaderboard = (): Promise<boolean> =>
 // ---------------- Cloud save (Play Games Saved Games) ----------------
 const SNAPSHOT_NAME = 'colorsort_save_v1';
 
+let cloudStatus = 'Cloud save: not checked yet';
+export const getCloudStatus = () => cloudStatus;
+const clock = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 /** The saved game, or null when signed out / no save / unreadable. Never throws. */
 export async function loadCloudSave(): Promise<unknown | null> {
-  if (!(await signedIn())) return null;
+  if (!native()) { cloudStatus = 'Cloud save: only in the Android app'; return null; }
+  if (!(await signedIn())) { cloudStatus = 'Cloud save: not signed in to Play Games'; return null; }
   try {
     const { snapshot } = await PlayGames.loadSnapshot({ name: SNAPSHOT_NAME });
-    return snapshot?.data ? JSON.parse(snapshot.data) : null;
-  } catch {
+    if (!snapshot?.data) { cloudStatus = 'Cloud save: none found yet'; return null; }
+    cloudStatus = `Cloud save: found (saved ${new Date(snapshot.modifiedAt || 0).toLocaleString()})`;
+    return JSON.parse(snapshot.data);
+  } catch (e) {
+    cloudStatus = `Cloud save: could not read - ${errText(e)}`;
     return null;
   }
 }
 
 export async function saveCloudSave(save: unknown): Promise<boolean> {
-  if (!(await signedIn())) return false;
+  if (!native()) return false;
+  if (!(await signedIn())) { cloudStatus = 'Cloud save: not signed in to Play Games'; return false; }
   try {
     const p = await PlayGames.getPlayer();
     await PlayGames.saveSnapshot({
@@ -173,9 +182,11 @@ export async function saveCloudSave(save: unknown): Promise<boolean> {
       description: 'ColorSort progress',
       expectedPlayerId: p.playerId,
     });
+    cloudStatus = `Cloud save: saved at ${clock()}`;
     return true;
   } catch (e) {
     lastIssue = errText(e);
+    cloudStatus = `Cloud save: could not save - ${errText(e)}`;
     return false;
   }
 }

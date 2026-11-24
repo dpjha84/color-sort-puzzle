@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X, Trophy, Star, User, Edit3, Check, Globe } from 'lucide-react';
 import { PlayerProfile } from '../types/game';
 import { playerLevel, ProgressState } from '../utils/progress';
-import { showLeaderboard, showAchievements, playGamesStatus, getLastIssue } from '../utils/playGames';
+import { showLeaderboard, showAchievements, playGamesStatus, getLastIssue, getCloudStatus } from '../utils/playGames';
 import {
   AVATAR_OPTIONS,
   COUNTRY_OPTIONS,
@@ -11,6 +11,7 @@ import {
 import { soundManager } from '../utils/audio';
 
 interface LeaderboardModalProps {
+  onSyncCloud?: () => Promise<string>;
   isOpen: boolean;
   onClose: () => void;
   playerProfile: PlayerProfile;
@@ -23,10 +24,20 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   onClose,
   playerProfile,
   progress,
+  onSyncCloud,
   onProfileUpdated,
 }) => {
   const [globalMsg, setGlobalMsg] = useState<string | null>(null);
   const [pgStatus, setPgStatus] = useState('Play Games: checking...');
+  const [cloudMsg, setCloudMsg] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const syncNow = async () => {
+    if (!onSyncCloud || syncing) return;
+    soundManager.playClick();
+    setSyncing(true);
+    setCloudMsg(await onSyncCloud());
+    setSyncing(false);
+  };
   useEffect(() => {
     if (isOpen) playGamesStatus().then(setPgStatus);
   }, [isOpen, globalMsg]);
@@ -204,6 +215,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           </button>
           {globalMsg && <p className="text-center text-[11px] text-amber-300 break-words">{globalMsg}</p>}
           <p className="text-center text-[10px] text-slate-500 break-words">{pgStatus}</p>
+          <p className="text-center text-[10px] text-slate-500 break-words">
+            {cloudMsg || getCloudStatus()}{' '}
+            {onSyncCloud && (
+              <button onClick={syncNow} disabled={syncing} className="underline text-slate-300">
+                {syncing ? 'Syncing...' : 'Sync now'}
+              </button>
+            )}
+          </p>
         </div>
       </div>
     </div>
