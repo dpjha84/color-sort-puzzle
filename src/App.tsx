@@ -31,7 +31,7 @@ import { VictoryRewards } from './types/game';
 import {
   ProgressState, ShopItem, loadProgress, saveProgress, applyWin, applyStat, applyPurchase, playerLevel, applyDailyWin, DailyResult,
 } from './utils/progress';
-import { unlockAchievement, submitScore, syncProgress, submitDailyScore, showDailyLeaderboard, hasDailyLeaderboard, loadCloudSave, saveCloudSave } from './utils/playGames';
+import { unlockAchievement, submitScore, syncProgress, submitDailyScore, showDailyLeaderboard, hasDailyLeaderboard, getLastIssue, loadCloudSave, saveCloudSave } from './utils/playGames';
 
 export default function App() {
   // Player Profile & Preferences
@@ -132,6 +132,12 @@ export default function App() {
     goGameRef.current();
   }, [loadBoard]);
   const goGameRef = useRef<() => void>(() => {});
+
+  // A hint describes one exact board: drop the highlight the moment the board changes (move, undo, +tube, reset, revive)
+  useEffect(() => {
+    setHintSourceIndex(null);
+    setHintTargetIndex(null);
+  }, [tubes]);
 
   // Timer loop
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -512,6 +518,7 @@ export default function App() {
     }
 
     if (hint) {
+      setSelectedTubeIndex(null); // a half-made pick would fight the hint
       soundManager.playPop(700);
       soundManager.triggerHaptic(30);
       setHintSourceIndex(hint.fromIndex);
@@ -741,7 +748,7 @@ export default function App() {
           onStartDaily={() => { soundManager.playClick(); startDaily(); }}
           onOpenDailyLeaderboard={() => {
             soundManager.playClick();
-            showDailyLeaderboard().then((ok) => { if (!ok) { setToast('Sign in to Play Games to see the leaderboard'); setTimeout(() => setToast(null), 3000); } });
+            showDailyLeaderboard().then((ok) => { if (!ok) { setToast(`Could not open the leaderboard. ${getLastIssue()}`.trim()); setTimeout(() => setToast(null), 3000); } });
           }}
         />
       ) : (

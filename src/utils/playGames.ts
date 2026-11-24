@@ -5,7 +5,7 @@ import { PlayGames } from '@idleflowgames/capacitor-play-games';
 
 export const PLAY_LEADERBOARD_ID = 'CggInaup8GwQAhAB';
 // Daily Challenge leaderboard (create it in Play Console, then paste its ID here; empty = hidden)
-export const PLAY_DAILY_LEADERBOARD_ID = 'CggInaup8GwQAhAa';
+export const PLAY_DAILY_LEADERBOARD_ID: string = 'CggInaup8GwQAhAa';
 export const hasDailyLeaderboard = () => PLAY_DAILY_LEADERBOARD_ID !== '';
 export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
   first_clear: 'CggInaup8GwQAhAC',
@@ -35,7 +35,11 @@ export const PLAY_ACHIEVEMENT_IDS: Record<string, string> = {
 
 const native = () => Capacitor.isNativePlatform();
 let lastIssue = '';
-const errText = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'string' ? e : JSON.stringify(e)) || 'unknown error';
+const errText = (e: unknown) => {
+  const o = e as { message?: string; code?: string | number };
+  const msg = e instanceof Error || typeof o?.message === 'string' ? o.message : typeof e === 'string' ? e : JSON.stringify(e);
+  return `${msg || 'unknown error'}${o?.code ? ` [code ${o.code}]` : ''}`;
+};
 let ready: Promise<void> | null = null;
 
 // Called once at startup. Silent sign-in only: never shows a prompt by itself.
@@ -76,9 +80,9 @@ export async function submitScore(score: number): Promise<void> {
   try { await PlayGames.submitScore({ leaderboardId: PLAY_LEADERBOARD_ID, score }); } catch { /* ignore */ }
 }
 
-// Opens Google's leaderboard screen. Asks the player to sign in first if needed.
-// Returns false if it could not be shown (web, declined sign-in, offline).
-export async function showLeaderboard(): Promise<boolean> {
+// Runs a Play Games screen. If Google says we are not signed in (the silent sign-in can be stale), it asks the
+// player to sign in interactively once and tries again. Returns false if it could not be shown.
+async function openPlayScreen(open: () => Promise<void>): Promise<boolean> {
   if (!native()) return false;
   try {
     await initPlayGames();
@@ -86,30 +90,28 @@ export async function showLeaderboard(): Promise<boolean> {
       const r = await PlayGames.signIn({ silent: false });
       if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
     }
-    await PlayGames.showLeaderboard({ leaderboardId: PLAY_LEADERBOARD_ID });
-    return true;
+    try {
+      await open();
+      return true;
+    } catch (first) {
+      if (!/not signed in/i.test(errText(first))) throw first;
+      const r = await PlayGames.signIn({ silent: false }); // refresh the session, then retry once
+      if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
+      await open();
+      return true;
+    }
   } catch (e) {
     lastIssue = errText(e);
     return false;
   }
 }
 
+// Opens Google's leaderboard screen. Asks the player to sign in first if needed.
+export const showLeaderboard = (): Promise<boolean> =>
+  openPlayScreen(() => PlayGames.showLeaderboard({ leaderboardId: PLAY_LEADERBOARD_ID }));
+
 // Opens Google's achievements screen (same sign-in handling as the leaderboard).
-export async function showAchievements(): Promise<boolean> {
-  if (!native()) return false;
-  try {
-    await initPlayGames();
-    if (!(await PlayGames.isSignedIn()).signedIn) {
-      const r = await PlayGames.signIn({ silent: false });
-      if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
-    }
-    await PlayGames.showAchievements();
-    return true;
-  } catch (e) {
-    lastIssue = errText(e);
-    return false;
-  }
-}
+export const showAchievements = (): Promise<boolean> => openPlayScreen(() => PlayGames.showAchievements());
 
 export function getLastIssue(): string {
   return lastIssue;
@@ -144,22 +146,8 @@ export async function submitDailyScore(points: number): Promise<void> {
 }
 
 // Opens the Daily Challenge leaderboard (falls back to the main one until the daily one is configured).
-export async function showDailyLeaderboard(): Promise<boolean> {
-  if (!hasDailyLeaderboard()) return showLeaderboard();
-  if (!native()) return false;
-  try {
-    await initPlayGames();
-    if (!(await PlayGames.isSignedIn()).signedIn) {
-      const r = await PlayGames.signIn({ silent: false });
-      if (!r.signedIn) { lastIssue = `Sign-in not completed (${r.reason ?? 'unknown'})`; return false; }
-    }
-    await PlayGames.showLeaderboard({ leaderboardId: PLAY_DAILY_LEADERBOARD_ID });
-    return true;
-  } catch (e) {
-    lastIssue = errText(e);
-    return false;
-  }
-}
+export const showDailyLeaderboard = (): Promise<boolean> =>
+  hasDailyLeaderboard() ? openPlayScreen(() => PlayGames.showLeaderboard({ leaderboardId: PLAY_DAILY_LEADERBOARD_ID })) : showLeaderboard();
 
 // ---------------- Cloud save (Play Games Saved Games) ----------------
 const SNAPSHOT_NAME = 'colorsort_save_v1';
