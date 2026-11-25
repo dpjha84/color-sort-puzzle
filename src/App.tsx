@@ -4,6 +4,7 @@ import { generateLevel, generateDaily, dailyPoints, todayUTC, DailyConfig } from
 import { LevelConfig } from './types/game';
 import { DailyVictoryModal } from './components/DailyVictoryModal';
 import { maybeRequestReview } from './utils/review';
+import { saveBoard, clearBoard, loadBoard as loadSavedBoard, isValidSavedBoard, isSolvedColors, SavedBoard } from './utils/boardSave';
 import { CloudSave, isValidSave, mergeSaves, hasProgress } from './utils/cloudSave';
 import { isBoardSolved, isTubeCompleted, getValidMoves, getHint } from './utils/solver';
 import { soundManager } from './utils/audio';
@@ -94,26 +95,27 @@ export default function App() {
   const [lastStarsEarned, setLastStarsEarned] = useState(3);
 
   // Initial Level Setup
-  const loadBoard = useCallback((config: LevelConfig) => {
-    const initialTubes: Tube[] = config.initialTubes.map((ballColors, idx) => ({
+  const loadBoard = useCallback((config: LevelConfig, saved?: SavedBoard) => {
+    const source = saved ? saved.tubes : config.initialTubes;
+    const initialTubes: Tube[] = source.map((ballColors, idx) => ({
       id: idx,
       balls: ballColors.map((color, bIdx) => ({
         id: `tube-${idx}-ball-${bIdx}-${Math.random()}`,
         color,
       })),
       maxCapacity: 4,
-      isComplete: isTubeCompleted(ballColors, 4, config.initialTubes),
+      isComplete: isTubeCompleted(ballColors, 4, source),
     }));
 
     setTubes(initialTubes);
     setSelectedTubeIndex(null);
-    setMoveHistory([]);
-    setMovesCount(0);
+    setMoveHistory(saved ? saved.history.map((h) => ({ fromTubeIndex: h.f, toTubeIndex: h.t, ball: { id: `undo-${Math.random()}`, color: h.c } })) : []);
+    setMovesCount(saved ? saved.moves : 0);
     setTargetMoves(config.targetMoves);
-    setTimeSeconds(0);
+    setTimeSeconds(saved ? Math.floor(saved.time) : 0);
     setIsGameActive(true);
-    setAddedTubeThisRound(false);
-    assistedRef.current = false;
+    setAddedTubeThisRound(saved ? saved.added : false);
+    assistedRef.current = saved ? saved.assisted : false;
     setHintSourceIndex(null);
     setHintTargetIndex(null);
     setShowVictoryModal(false);
@@ -130,7 +132,8 @@ export default function App() {
     setMode('daily');
     setDailyCfg(cfg);
     setDailyResult(null);
-    loadBoard(cfg);
+    const saved = loadSavedBoard('daily');
+    loadBoard(cfg, isValidSavedBoard(saved, 'daily', cfg.levelNumber, cfg.date, cfg.initialTubes) ? saved : undefined);
     goGameRef.current();
   }, [loadBoard]);
   const goGameRef = useRef<() => void>(() => {});
@@ -239,9 +242,53 @@ export default function App() {
 
   // Resume at the player's saved level on app start (runs once)
   useEffect(() => {
-    loadLevel(currentLevel);
+    const cfg = generateLevel(currentLevel);
+    const saved = loadSavedBoard('campaign');
+    if (isValidSavedBoard(saved, 'campaign', currentLevel, '', cfg.initialTubes)) {
+      setMode('campaign');
+      setDailyCfg(null);
+      loadBoard(cfg, saved); // pick up exactly where the player left off
+    } else {
+      loadLevel(currentLevel);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadLevel]);
+
+  // Keep this device's copy of the board current (moves, undo history, time). Finished or stuck boards are cleared.
+  const timeRef = useRef(0);
+  timeRef.current = timeSeconds;
+  const persistBoard = () => {
+    if (!tubes.length) return;
+    const kind = mode;
+    if (kind === 'daily' && (!dailyCfg || dailyCfg.date !== todayUTC())) return;
+    const colors = tubes.map((t) => t.balls.map((b) => b.color));
+    if (showVictoryModal || showDailyVictory || showFailedModal || isSolvedColors(colors)) {
+      clearBoard(kind);
+      return;
+    }
+    saveBoard({
+      v: 1,
+      kind,
+      level: kind === 'daily' ? dailyCfg!.levelNumber : currentLevel,
+      date: kind === 'daily' ? dailyCfg!.date : '',
+      tubes: colors,
+      moves: movesCount,
+      time: timeRef.current,
+      history: moveHistory.map((m) => ({ f: m.fromTubeIndex, t: m.toTubeIndex, c: m.ball.color })),
+      added: addedTubeThisRound,
+      assisted: assistedRef.current,
+    });
+  };
+  const persistRef = useRef(persistBoard);
+  persistRef.current = persistBoard;
+  useEffect(() => {
+    persistRef.current();
+  }, [tubes, movesCount, moveHistory, addedTubeThisRound, showVictoryModal, showDailyVictory, showFailedModal]);
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') persistRef.current(); };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, []);
 
   // Handle Sound Mute Toggle
   const handleToggleSound = () => {
