@@ -36,6 +36,11 @@ jobs:
           echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
           printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$RUNNER_TEMP/upload.jks" "$KS_PASS" "$KEY_ALIAS" "$KEY_PASS" > keystore.properties
         working-directory: android
+      - name: Print upload key fingerprint (public; needed for the Play Games credential)
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: keytool -list -v -keystore "$RUNNER_TEMP/upload.jks" -alias "$KEY_ALIAS" -storepass "$KS_PASS" | grep -E "SHA1:|SHA256:" | sed 's/^ *//'
       - run: chmod +x gradlew && ./gradlew assembleDebug
         working-directory: android
       - uses: actions/upload-artifact@v4
