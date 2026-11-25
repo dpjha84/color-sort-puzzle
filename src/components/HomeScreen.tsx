@@ -176,36 +176,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <span className="text-base font-bold opacity-70">· Level {level}</span>
         </button>
 
-        {/* Daily challenge: one compact row */}
-        <div className="w-full rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 px-3 py-2.5 flex items-center gap-3">
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-400/15 flex items-center justify-center">
-            {dailyDone ? <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} /> : <CalendarDays className="w-5 h-5 text-amber-300" />}
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-extrabold text-white whitespace-nowrap">Daily</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-amber-200 whitespace-nowrap">{dailyDifficultyFor(today)}</span>
-              {streak > 0 && (
-                <span className="flex items-center text-[11px] font-bold text-orange-300 whitespace-nowrap"><Flame className="w-3.5 h-3.5" />{streak}</span>
-              )}
+        {/* Daily challenge: title row + action row, so nothing gets squeezed on narrow screens */}
+        <div className="w-full rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-500/10 to-fuchsia-500/10 px-3.5 py-3 flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 shrink-0 rounded-xl bg-amber-400/15 flex items-center justify-center">
+              {dailyDone ? <Check className="w-5 h-5 text-emerald-400" strokeWidth={3} /> : <CalendarDays className="w-5 h-5 text-amber-300" />}
             </div>
-            <div className="text-[11px] text-white/60 truncate tabular-nums">
+            <span className="text-base font-extrabold text-white">Daily</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-amber-200 whitespace-nowrap">{dailyDifficultyFor(today)}</span>
+            {streak > 0 && (
+              <span className="flex items-center gap-0.5 text-xs font-bold text-orange-300 whitespace-nowrap"><Flame className="w-4 h-4" />{streak}<span className="max-[340px]:hidden">&nbsp;day{streak === 1 ? '' : 's'}</span></span>
+            )}
+            <button
+              onClick={onOpenDailyLeaderboard}
+              aria-label="Daily leaderboard"
+              className="ml-auto shrink-0 w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <Trophy className="w-4 h-4 text-amber-300" />
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-white/65 tabular-nums">
               {dailyDone ? `Done · next in ${countdown}` : `Win today: +${100 + Math.min(Math.max(streak, 0), 6) * 20} 🪙`}
             </div>
+            <button
+              onClick={onStartDaily}
+              className="shrink-0 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-sm px-5 py-2 active:scale-95 transition-transform"
+            >
+              {dailyDone ? 'Replay' : 'Play'}
+            </button>
           </div>
-          <button
-            onClick={onOpenDailyLeaderboard}
-            aria-label="Daily leaderboard"
-            className="shrink-0 w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center active:scale-95 transition-transform"
-          >
-            <Trophy className="w-4 h-4 text-amber-300" />
-          </button>
-          <button
-            onClick={onStartDaily}
-            className="shrink-0 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-sm px-4 py-2 active:scale-95 transition-transform"
-          >
-            {dailyDone ? 'Retry' : 'Play'}
-          </button>
         </div>
 
         </div>
