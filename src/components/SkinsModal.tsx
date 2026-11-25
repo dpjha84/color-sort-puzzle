@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Check, Sparkles, Paintbrush, FlaskConical, Layout } from 'lucide-react';
 import { BallSkin, TubeSkin, BackgroundTheme, PlayerProfile } from '../types/game';
 import { BallView } from './BallView';
+import { useSymbolsOn, setSymbolsOn } from '../utils/symbols';
 import { soundManager } from '../utils/audio';
 
 interface SkinsModalProps {
@@ -21,6 +22,7 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
   onUpdateTubeSkin,
   onUpdateTheme,
 }) => {
+  const symbolsOn = useSymbolsOn();
   if (!isOpen) return null;
 
   const ballSkins: { id: BallSkin; title: string; subtitle: string; previewColor: 'red' | 'blue' | 'emerald' | 'amber' }[] = [
@@ -145,6 +147,23 @@ export const SkinsModal: React.FC<SkinsModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* Colour symbols assist (Gemstone Orbs) */}
+          <button
+            type="button"
+            onClick={() => { soundManager.playClick?.(); setSymbolsOn(!symbolsOn); }}
+            className={`w-full flex items-center justify-between gap-3 p-3 rounded-2xl border text-left transition-all ${
+              symbolsOn ? 'bg-purple-500/15 border-purple-400/50' : 'bg-slate-800/50 border-white/10'
+            }`}
+          >
+            <div>
+              <div className="text-white text-xs font-extrabold">Color symbols</div>
+              <div className="text-[10px] text-slate-400">Shape on each Gemstone Orb, easier to tell colors apart</div>
+            </div>
+            <div className={`w-10 h-6 rounded-full p-0.5 transition-colors ${symbolsOn ? 'bg-purple-500' : 'bg-slate-600'}`}>
+              <div className={`w-5 h-5 rounded-full bg-white transition-transform ${symbolsOn ? 'translate-x-4' : ''}`} />
+            </div>
+          </button>
 
           {/* Section 3: Arena Ambient Background */}
           <div>

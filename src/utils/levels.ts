@@ -2,14 +2,14 @@ import { BallColor, LevelConfig } from '../types/game';
 import { solvePlan } from './solver';
 
 export const COLOR_PALETTE: { color: BallColor; name: string; hex: string; gradient: string }[] = [
-  { color: 'red', name: 'Ruby', hex: '#EF4444', gradient: 'radial-gradient(circle at 35% 35%, #F87171, #EF4444 45%, #991B1B 100%)' },
-  { color: 'blue', name: 'Sapphire', hex: '#3B82F6', gradient: 'radial-gradient(circle at 35% 35%, #60A5FA, #3B82F6 45%, #1E40AF 100%)' },
-  { color: 'emerald', name: 'Emerald', hex: '#10B981', gradient: 'radial-gradient(circle at 35% 35%, #34D399, #10B981 45%, #065F46 100%)' },
-  { color: 'amber', name: 'Amber', hex: '#F59E0B', gradient: 'radial-gradient(circle at 35% 35%, #FBBF24, #F59E0B 45%, #92400E 100%)' },
-  { color: 'purple', name: 'Amethyst', hex: '#A855F7', gradient: 'radial-gradient(circle at 35% 35%, #C084FC, #A855F7 45%, #6B21A8 100%)' },
-  { color: 'cyan', name: 'Topaz', hex: '#06B6D4', gradient: 'radial-gradient(circle at 35% 35%, #22D3EE, #06B6D4 45%, #155E75 100%)' },
-  { color: 'pink', name: 'Rose', hex: '#EC4899', gradient: 'radial-gradient(circle at 35% 35%, #F472B6, #EC4899 45%, #9D174D 100%)' },
-  { color: 'orange', name: 'Coral', hex: '#F97316', gradient: 'radial-gradient(circle at 35% 35%, #FB923C, #F97316 45%, #9A3412 100%)' },
+  { color: 'red', name: 'Ruby', hex: '#D60023', gradient: 'radial-gradient(circle at 35% 35%, #FD3E3E, #D60023 45%, #7D0000 100%)' },
+  { color: 'blue', name: 'Sapphire', hex: '#6783E9', gradient: 'radial-gradient(circle at 35% 35%, #8BA2FF, #6783E9 45%, #00409B 100%)' },
+  { color: 'emerald', name: 'Emerald', hex: '#67E9A8', gradient: 'radial-gradient(circle at 35% 35%, #8BFFC9, #67E9A8 45%, #009A60 100%)' },
+  { color: 'amber', name: 'Amber', hex: '#F6E15A', gradient: 'radial-gradient(circle at 35% 35%, #FFFF78, #F6E15A 45%, #A39500 100%)' },
+  { color: 'purple', name: 'Amethyst', hex: '#6D22C4', gradient: 'radial-gradient(circle at 35% 35%, #9044E6, #6D22C4 45%, #060078 100%)' },
+  { color: 'cyan', name: 'Topaz', hex: '#33CDF4', gradient: 'radial-gradient(circle at 35% 35%, #64EFFF, #33CDF4 45%, #0082A6 100%)' },
+  { color: 'pink', name: 'Rose', hex: '#E967A1', gradient: 'radial-gradient(circle at 35% 35%, #FF88C1, #E967A1 45%, #97115A 100%)' },
+  { color: 'orange', name: 'Coral', hex: '#F2780F', gradient: 'radial-gradient(circle at 35% 35%, #FF9836, #F2780F 45%, #9A2F00 100%)' },
   { color: 'lime', name: 'Peridot', hex: '#84CC16', gradient: 'radial-gradient(circle at 35% 35%, #A3E635, #84CC16 45%, #3F6212 100%)' },
   { color: 'indigo', name: 'Tanzanite', hex: '#6366F1', gradient: 'radial-gradient(circle at 35% 35%, #818CF8, #6366F1 45%, #3730A3 100%)' },
 ];

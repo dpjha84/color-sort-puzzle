@@ -1,5 +1,6 @@
 import React from 'react';
 import { BallColor, BallSkin } from '../types/game';
+import { useSymbolsOn, SYMBOLS } from '../utils/symbols';
 import { getColorDetails, EMOJI_MAP, PLANET_MAP, SPORTS_MAP } from '../utils/levels';
 
 interface BallViewProps {
@@ -22,6 +23,7 @@ export const BallView: React.FC<BallViewProps> = ({
   hidden = false,
 }) => {
   const colorDetails = getColorDetails(color);
+  const symbolsOn = useSymbolsOn();
 
   return (
     <div
@@ -106,7 +108,16 @@ export const BallView: React.FC<BallViewProps> = ({
 
       {skin === 'neon' && (
         /* Subtle gemstone facet sheen */
-        <div className="relative z-10 w-2 h-2 rounded-full bg-white/60 pointer-events-none" />
+        symbolsOn && SYMBOLS[color] ? (
+          <span
+            className="relative z-10 select-none pointer-events-none font-black text-white leading-none"
+            style={{ fontSize: `${size * 0.46}px`, textShadow: '0 0 2px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.8)' }}
+          >
+            {SYMBOLS[color]}
+          </span>
+        ) : (
+          <div className="relative z-10 w-2 h-2 rounded-full bg-white/60 pointer-events-none" />
+        )
       )}
     </div>
   );
