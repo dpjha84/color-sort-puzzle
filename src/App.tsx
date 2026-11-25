@@ -138,6 +138,42 @@ export default function App() {
   }, [loadBoard]);
   const goGameRef = useRef<() => void>(() => {});
 
+  // Dead-end detection: after a move, if the solver proves the board can no longer be won, offer a free rewind
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    setStuck(false);
+    if (screen !== 'game' || !isGameActive || !tubes.length || showVictoryModal || showDailyVictory || showFailedModal) return;
+    const colors = tubes.map((t) => t.balls.map((b) => b.color));
+    if (isBoardSolved(colors, 4) || getValidMoves(colors, 4).length === 0) return; // finished, or the no-moves screen handles it
+    const timer = setTimeout(() => {
+      if (getHint(colors, 4).unsolvable) setStuck(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [tubes, screen, isGameActive, showVictoryModal, showDailyVictory, showFailedModal]);
+
+  // Free "smart undo": step back until the position can be won again (no undo charge; counts as assisted)
+  const handleRewind = () => {
+    soundManager.playClick();
+    const nt = tubes.map((t) => ({ ...t, balls: [...t.balls] }));
+    const hist = [...moveHistory];
+    let undone = 0;
+    while (hist.length) {
+      const m = hist.pop()!;
+      const ball = nt[m.toTubeIndex].balls.pop()!;
+      nt[m.fromTubeIndex].balls.push(ball);
+      undone++;
+      if (!getHint(nt.map((t) => t.balls.map((b) => b.color)), 4).unsolvable) break;
+    }
+    const fixed = nt.map((t) => ({ ...t, isComplete: isTubeCompleted(t.balls.map((b) => b.color), t.maxCapacity) }));
+    assistedRef.current = true;
+    soundManager.playPop(480);
+    setTubes(fixed);
+    setMoveHistory(hist);
+    setMovesCount((m) => Math.max(0, m - undone));
+    setSelectedTubeIndex(null);
+    setStuck(false);
+  };
+
   // A hint describes one exact board: drop the highlight the moment the board changes (move, undo, +tube, reset, revive)
   useEffect(() => {
     setHintSourceIndex(null);
@@ -870,6 +906,18 @@ export default function App() {
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-800 text-white text-xs border border-white/20 shadow-lg">{toast}</div>
+      )}
+
+      {stuck && !showFailedModal && !showVictoryModal && !showDailyVictory && screen === 'game' && (
+        <div className="fixed top-[158px] left-1/2 -translate-x-1/2 z-[55] w-[calc(100%-1.5rem)] max-w-sm rounded-2xl bg-slate-900/95 border border-amber-400/40 shadow-xl px-3 py-1.5 flex items-center gap-3 animate-in fade-in duration-200">
+          <span className="text-xl" aria-hidden>🧩</span>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-xs font-bold text-white leading-tight">Can't be solved from here</div>
+            <div className="text-[10px] text-slate-400 leading-tight">Rewind is free</div>
+          </div>
+          <button onClick={handleRewind} className="shrink-0 rounded-xl bg-amber-400 text-slate-950 font-extrabold text-xs px-3 py-2 active:scale-95 transition-transform">Rewind</button>
+          <button onClick={() => setStuck(false)} aria-label="Dismiss" className="shrink-0 text-slate-400 text-lg leading-none px-1">×</button>
+        </div>
       )}
 
       {adNotice && (
