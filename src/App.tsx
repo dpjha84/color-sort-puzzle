@@ -248,6 +248,9 @@ export default function App() {
     if (isValidSave(raw)) {
       const { merged, winner } = mergeSaves(snapshot(), raw);
       if (winner === 'cloud') {
+        // looks are per device: keep the skins/theme chosen here instead of the cloud copy's
+        const local = getPlayerProfile();
+        merged.profile = { ...merged.profile, selectedSkin: local.selectedSkin, selectedTubeSkin: local.selectedTubeSkin, selectedTheme: local.selectedTheme };
         savePlayerProfile(merged.profile);
         setProfile(merged.profile);
         setProgress(merged.progress);

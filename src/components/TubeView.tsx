@@ -127,18 +127,27 @@ export const TubeView: React.FC<TubeViewProps> = ({
             ? 'ring-2 ring-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.4)] border-emerald-400'
             : isComplete
             ? 'border-emerald-400/50 shadow-[0_0_16px_rgba(52,211,153,0.25)]'
+            : tubeSkin === 'neon'
+            ? 'border-cyan-300/90'
+            : tubeSkin === 'flask'
+            ? 'border-amber-200/70'
             : 'border-white/30 hover:border-white/60'
         } ${
           tubeSkin === 'neon'
-            ? 'bg-slate-900/60 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+            ? 'bg-slate-950/80 border-2'
             : tubeSkin === 'flask'
-            ? 'bg-slate-800/40 rounded-t-lg'
+            ? 'bg-gradient-to-b from-amber-200/10 to-amber-400/20 border-2'
             : 'glass-tube'
         }`}
         style={{
           width: `${tubeWidth}px`,
           height: `${tubeHeight}px`,
           paddingBottom: '10px',
+          ...(tubeSkin === 'neon'
+            ? { boxShadow: '0 0 14px rgba(34,211,238,0.7), 0 0 34px rgba(99,102,241,0.45), inset 0 0 14px rgba(34,211,238,0.3)', borderRadius: '8px 8px 14px 14px' }
+            : tubeSkin === 'flask'
+            ? { borderRadius: `10px 10px ${Math.round(tubeWidth / 2)}px ${Math.round(tubeWidth / 2)}px`, boxShadow: 'inset 0 0 14px rgba(251,191,36,0.25), 0 6px 18px rgba(0,0,0,0.4)' }
+            : {}),
           transformOrigin: '50% 100%',
           animation: thud > 0 ? `${thud % 2 ? 'tube-thud-a' : 'tube-thud-b'} 380ms cubic-bezier(.3,1.5,.6,1)` : undefined,
         }}
@@ -165,7 +174,9 @@ export const TubeView: React.FC<TubeViewProps> = ({
         <div
           className={`absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full border border-white/40 z-10 ${
             tubeSkin === 'neon'
-              ? 'bg-indigo-500/30 border-indigo-300'
+              ? 'bg-cyan-400/50 border-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.8)]'
+              : tubeSkin === 'flask'
+              ? 'bg-amber-300/50 border-amber-100'
               : 'glass-tube-rim'
           }`}
           style={{
