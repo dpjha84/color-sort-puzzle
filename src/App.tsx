@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { logEvent } from './utils/analytics';
+import { claimAdFreeBonus } from './utils/purchases';
 import { Tube, Move, BallSkin, TubeSkin, BackgroundTheme, PlayerProfile, RewardType } from './types/game';
 import { generateLevel, generateDaily, dailyPoints, todayUTC, DailyConfig } from './utils/levels';
 import { LevelConfig } from './types/game';
@@ -699,6 +700,14 @@ export default function App() {
     savePlayerProfile(updatedProfile);
   };
 
+  // "Remove ads" bought: thank-you boosters, once per device
+  const handleAdFreeBought = () => {
+    if (!claimAdFreeBonus()) return;
+    const updated: PlayerProfile = { ...profile, hintsRemaining: profile.hintsRemaining + 10, undoRemaining: profile.undoRemaining + 10 };
+    setProfile(updated);
+    savePlayerProfile(updated);
+  };
+
   // Spend coins/gems on boosters
   const handleBuy = (item: ShopItem) => {
     const next = applyPurchase(progressRef.current, item);
@@ -1048,6 +1057,7 @@ export default function App() {
         onClose={() => setShowRewardsModal(false)}
         progress={progress}
         onBuy={handleBuy}
+        onAdFreeBought={handleAdFreeBought}
       />
 
       {/* 8. Android App & APK Modal */}

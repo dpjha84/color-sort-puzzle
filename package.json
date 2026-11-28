@@ -19,6 +19,7 @@
     "@capacitor/cli": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "@capacitor/share": "^8.0.3",
+    "@capgo/native-purchases": "^8.11.0",
     "@google/genai": "^2.4.0",
     "@idleflowgames/capacitor-play-games": "file:plugins/capacitor-play-games",
     "@tailwindcss/vite": "^4.3.3",

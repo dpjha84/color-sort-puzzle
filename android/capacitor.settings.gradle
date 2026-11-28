@@ -17,5 +17,8 @@ project(':capacitor-firebase-crashlytics').projectDir = new File('../node_module
 include ':capacitor-share'
 project(':capacitor-share').projectDir = new File('../node_modules/@capacitor/share/android')
 
+include ':capgo-native-purchases'
+project(':capgo-native-purchases').projectDir = new File('../node_modules/@capgo/native-purchases/android')
+
 include ':idleflowgames-capacitor-play-games'
 project(':idleflowgames-capacitor-play-games').projectDir = new File('../plugins/capacitor-play-games/android')

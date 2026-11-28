@@ -20,6 +20,10 @@
 		"classpath": "com.capacitorjs.plugins.share.SharePlugin"
 	},
 	{
+		"pkg": "@capgo/native-purchases",
+		"classpath": "ee.forgr.nativepurchases.NativePurchasesPlugin"
+	},
+	{
 		"pkg": "@idleflowgames/capacitor-play-games",
 		"classpath": "com.idleflowgames.playgames.PlayGamesPlugin"
 	}

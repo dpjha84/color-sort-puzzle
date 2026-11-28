@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { adMobManager } from './utils/admob';
 import { initCrashReporting } from './utils/analytics';
+import { refreshEntitlement } from './utils/purchases';
 
 // The Android app serves its files locally; a service worker only causes stale code / reload glitches.
 if (adMobManager.isNative() && 'serviceWorker' in navigator) {
@@ -12,6 +13,7 @@ if (adMobManager.isNative() && 'serviceWorker' in navigator) {
 }
 
 initCrashReporting();
+refreshEntitlement();
 adMobManager.init();
 initPlayGames();
 
