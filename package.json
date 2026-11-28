@@ -13,6 +13,8 @@
   "dependencies": {
     "@capacitor-community/admob": "^8.3.0",
     "@capacitor-community/in-app-review": "^8.0.0",
+    "@capacitor-firebase/analytics": "^8.6.0",
+    "@capacitor-firebase/crashlytics": "^8.6.0",
     "@capacitor/android": "^8.6.0",
     "@capacitor/cli": "^8.6.0",
     "@capacitor/core": "^8.6.0",
@@ -25,6 +27,7 @@
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "firebase": "^12.19.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",

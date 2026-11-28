@@ -10,6 +10,7 @@
  *    at build time (the release workflow does this). Never tap your own live ads.
  */
 import { Capacitor } from '@capacitor/core';
+import { setAnalyticsEnabled } from './analytics';
 import {
   AdMob,
   AdmobConsentStatus,
@@ -132,6 +133,12 @@ class AdMobManager {
           }
         } catch (e) {
           this.log(`consent skipped: ${String(e).slice(0, 80)}`);
+        }
+        try {
+          const after = await AdMob.requestConsentInfo();
+          setAnalyticsEnabled(after.status !== AdmobConsentStatus.REQUIRED);
+        } catch {
+          setAnalyticsEnabled(true);
         }
         await AdMob.initialize({ initializeForTesting: isTesting });
         this.ready = true;

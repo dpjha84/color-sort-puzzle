@@ -8,6 +8,18 @@
 		"classpath": "com.getcapacitor.community.inappreview.InAppReviewPlugin"
 	},
 	{
+		"pkg": "@capacitor-firebase/analytics",
+		"classpath": "io.capawesome.capacitorjs.plugins.firebase.analytics.FirebaseAnalyticsPlugin"
+	},
+	{
+		"pkg": "@capacitor-firebase/crashlytics",
+		"classpath": "io.capawesome.capacitorjs.plugins.firebase.crashlytics.FirebaseCrashlyticsPlugin"
+	},
+	{
+		"pkg": "@capacitor/share",
+		"classpath": "com.capacitorjs.plugins.share.SharePlugin"
+	},
+	{
 		"pkg": "@idleflowgames/capacitor-play-games",
 		"classpath": "com.idleflowgames.playgames.PlayGamesPlugin"
 	}

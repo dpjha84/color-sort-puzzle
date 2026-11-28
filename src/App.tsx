@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logEvent } from './utils/analytics';
 import { Tube, Move, BallSkin, TubeSkin, BackgroundTheme, PlayerProfile, RewardType } from './types/game';
 import { generateLevel, generateDaily, dailyPoints, todayUTC, DailyConfig } from './utils/levels';
 import { LevelConfig } from './types/game';
@@ -126,6 +127,7 @@ export default function App() {
     setMode('campaign');
     setDailyCfg(null);
     loadBoard(generateLevel(lvl));
+    logEvent('level_start', { level: lvl, mode: 'campaign' });
   }, [loadBoard]);
   const startDaily = useCallback(() => {
     const cfg = generateDaily(todayUTC());
@@ -134,6 +136,7 @@ export default function App() {
     setDailyResult(null);
     const saved = loadSavedBoard('daily');
     loadBoard(cfg, isValidSavedBoard(saved, 'daily', cfg.levelNumber, cfg.date, cfg.initialTubes) ? saved : undefined);
+    logEvent('level_start', { level: cfg.levelNumber, mode: 'daily' });
     goGameRef.current();
   }, [loadBoard]);
   const goGameRef = useRef<() => void>(() => {});
@@ -369,6 +372,7 @@ export default function App() {
           queueCloudSave();
         }
         setDailyResult(res);
+        logEvent('level_end', { mode: 'daily', success: true, level: dailyCfg.levelNumber, moves: movesCount + 1, time_s: timeSeconds, points: pts, streak: res.streak, counted });
         setTimeout(() => { soundManager.playVictory(); soundManager.triggerHaptic(50); }, 480);
         setTimeout(() => setShowDailyVictory(true), 800);
         return true;
@@ -392,6 +396,7 @@ export default function App() {
       });
       setProgress(res.state);
       setLastRewards({ coins: res.summary.coins, xp: res.summary.xp, unlocked: res.summary.unlocked, leveledUpTo: res.summary.leveledUpTo });
+      logEvent('level_end', { mode: 'campaign', success: true, level: currentLevel, stars, moves: movesCount + 1, time_s: timeSeconds, assisted: assistedRef.current });
       res.summary.unlocked.forEach((a) => unlockAchievement(a.id));
       queueCloudSave();
       if (stars === 3) maybeRequestReview(res.state.stats.levelsWon);
@@ -420,6 +425,7 @@ export default function App() {
 
     if (validMoves.length === 0) {
       soundManager.playError();
+      logEvent('level_end', { mode: modeRef.current, success: false, level: currentLevel, moves: movesCount, time_s: timeSeconds });
       setTimeout(() => {
         setShowFailedModal(true);
       }, 500);
@@ -544,6 +550,7 @@ export default function App() {
       return;
     }
 
+    logEvent('undo_used', { level: currentLevel, mode });
     assistedRef.current = true;
     soundManager.playPop(480);
     soundManager.triggerHaptic(20);
@@ -620,6 +627,7 @@ export default function App() {
       setHintSourceIndex(hint.fromIndex);
       setHintTargetIndex(hint.toIndex);
       assistedRef.current = true;
+      logEvent('hint_used', { level: currentLevel, mode });
       const st = applyStat(progressRef.current, 'hintsUsed');
       setProgress(st.state);
       st.unlocked.forEach((a) => unlockAchievement(a.id));
@@ -647,6 +655,7 @@ export default function App() {
 
     soundManager.playVictory();
     soundManager.triggerHaptic(40);
+    logEvent('add_tube', { level: currentLevel });
 
     const newTube: Tube = {
       id: tubes.length,
@@ -668,7 +677,9 @@ export default function App() {
 
   // Real rewarded ad: reward only if the player finishes watching
   const watchRewardedAd = (onReward: () => void) => {
-    adMobManager.showRewarded(onReward, () => {
+    logEvent('rewarded_ad_requested');
+    adMobManager.showRewarded(() => { logEvent('rewarded_ad_granted'); onReward(); }, () => {
+      logEvent('rewarded_ad_unavailable');
       setAdNotice('Ad not ready yet. Please try again in a few seconds.');
       setTimeout(() => setAdNotice(null), 3000);
     });
@@ -692,6 +703,7 @@ export default function App() {
   const handleBuy = (item: ShopItem) => {
     const next = applyPurchase(progressRef.current, item);
     if (!next) return;
+    logEvent('shop_purchase', { item });
     setProgress(next);
     const updated: PlayerProfile = { ...profile };
     if (item === 'hint') updated.hintsRemaining += 1;
