@@ -10,6 +10,8 @@
  *    at build time (the release workflow does this). Never tap your own live ads.
  */
 import { Capacitor } from '@capacitor/core';
+import { setAnalyticsEnabled } from './analytics';
+import { adsRemoved } from './purchases';
 import {
   AdMob,
   AdmobConsentStatus,
@@ -133,6 +135,12 @@ class AdMobManager {
         } catch (e) {
           this.log(`consent skipped: ${String(e).slice(0, 80)}`);
         }
+        try {
+          const after = await AdMob.requestConsentInfo();
+          setAnalyticsEnabled(after.status !== AdmobConsentStatus.REQUIRED);
+        } catch {
+          setAnalyticsEnabled(true);
+        }
         await AdMob.initialize({ initializeForTesting: isTesting });
         this.ready = true;
         this.log(`init ok (testing=${isTesting})`);
@@ -152,8 +160,15 @@ class AdMobManager {
   }
 
   // ---------- banner ----------
+  /** Takes the banner off screen (used right after "Remove ads" is bought). */
+  public async hideBanner(): Promise<void> {
+    if (!this.isNative()) return;
+    this.bannerShown = false;
+    try { await AdMob.removeBanner(); } catch { /* ignore */ }
+  }
+
   public async showBanner(): Promise<void> {
-    if (!this.isNative() || this.bannerShown) return;
+    if (!this.isNative() || this.bannerShown || adsRemoved()) return;
     await this.init();
     if (!this.ready || !this.online()) return;
     try {
@@ -174,7 +189,7 @@ class AdMobManager {
 
   // ---------- interstitial ----------
   public preloadInterstitial(): void {
-    if (!this.isNative() || !this.ready || this.interstitialLoaded || this.interstitialLoading) return;
+    if (!this.isNative() || !this.ready || this.interstitialLoaded || this.interstitialLoading || adsRemoved()) return;
     if (!this.online()) return;
     this.interstitialLoading = true;
     AdMob.prepareInterstitial({ adId: IDS.interstitial, isTesting })
@@ -198,7 +213,7 @@ class AdMobManager {
    */
   public async showInterstitial(onDone: () => void): Promise<void> {
     this.log('showInterstitial requested (tap)');
-    if (!this.isNative()) return onDone();
+    if (!this.isNative() || adsRemoved()) return onDone();
     if (this.interstitialBusy) return; // ignore repeated taps while an ad is in progress
     const since = Date.now() - this.lastAdShownAt;
     if (since < INTERSTITIAL_COOLDOWN_MS) {

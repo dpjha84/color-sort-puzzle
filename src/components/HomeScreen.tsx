@@ -185,7 +185,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <span className="text-base font-extrabold text-white">Daily</span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-amber-200 whitespace-nowrap">{dailyDifficultyFor(today)}</span>
             {streak > 0 && (
-              <span className="flex items-center gap-0.5 text-xs font-bold text-orange-300 whitespace-nowrap"><Flame className="w-4 h-4" />{streak}<span className="max-[340px]:hidden">&nbsp;day{streak === 1 ? '' : 's'}</span></span>
+              <span className="flex items-center gap-0.5 text-xs font-bold text-orange-300 whitespace-nowrap"><Flame className="w-4 h-4" />{streak}<span className="max-[340px]:hidden">&nbsp;day{streak === 1 ? '' : 's'}</span>{(daily.freezes ?? 0) > 0 && <span className="ml-1 text-cyan-300" title="Streak freezes">🧊{daily.freezes}</span>}</span>
             )}
             <button
               onClick={onOpenDailyLeaderboard}

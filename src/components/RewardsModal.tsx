@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { buyRemoveAds, getRemoveAdsPrice, refreshEntitlement, useAdsRemoved } from '../utils/purchases';
 import { X, Trophy, ShoppingBag, Check } from 'lucide-react';
-import { ACHIEVEMENTS, SHOP, ProgressState, ShopItem, playerLevel } from '../utils/progress';
+import { ACHIEVEMENTS, SHOP, MAX_FREEZES, ProgressState, ShopItem, playerLevel } from '../utils/progress';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   progress: ProgressState;
   onBuy: (item: ShopItem) => void;
+  onAdFreeBought: () => void;
 }
 
-export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy }) => {
+export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy, onAdFreeBought }) => {
   const [tab, setTab] = useState<'ach' | 'shop'>('ach');
+  const adFree = useAdsRemoved();
+  const [price, setPrice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    if (isOpen && tab === 'shop' && !adFree) getRemoveAdsPrice().then(setPrice);
+  }, [isOpen, tab, adFree]);
+  const buy = async () => {
+    if (busy) return;
+    setBusy(true);
+    setNote('');
+    const r = await buyRemoveAds();
+    if (r === 'ok') onAdFreeBought();
+    else if (r === 'error') setNote('Could not complete the purchase. Please try again.');
+    setBusy(false);
+  };
+  const restore = async () => {
+    setBusy(true);
+    const owned = await refreshEntitlement();
+    setNote(owned ? 'Purchase restored. Ads are off.' : 'No earlier purchase found on this Google account.');
+    setBusy(false);
+  };
   if (!isOpen) return null;
   const pl = playerLevel(progress.xp);
   const pct = Math.min(100, Math.round((pl.into / pl.need) * 100));
@@ -93,9 +118,27 @@ export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy
               );
             })}
 
+          {tab === 'shop' && Capacitor.isNativePlatform() && (
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-cyan-500/10 border border-emerald-400/30">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 shrink-0 rounded-xl bg-white/10 flex items-center justify-center text-2xl">🚫</div>
+                <div className="flex-1">
+                  <div className="text-white text-sm font-bold">{adFree ? 'Ads removed' : 'Remove Ads'}</div>
+                  <div className="text-[11px] text-slate-300">{adFree ? 'Thank you for supporting Pixel Pocket!' : 'No banners or pop-up ads, forever. Hint videos stay optional. Includes 10 hints and 10 undos.'}</div>
+                </div>
+                {adFree ? <Check className="w-6 h-6 text-emerald-400" strokeWidth={3} /> : (
+                  <button onClick={buy} disabled={busy || !price} className="px-3 py-2 rounded-xl text-xs font-black bg-emerald-400 text-slate-950 active:scale-95 disabled:opacity-50">{price ?? '…'}</button>
+                )}
+              </div>
+              {!adFree && <button onClick={restore} disabled={busy} className="mt-2 text-[11px] text-cyan-300 underline disabled:opacity-50">Restore purchase</button>}
+              {note && <div className="mt-1 text-[11px] text-amber-200">{note}</div>}
+            </div>
+          )}
+
           {tab === 'shop' &&
             SHOP.map((s) => {
-              const can = (s.coins ?? 0) <= progress.coins && (s.gems ?? 0) <= progress.gems;
+              const full = s.id === 'freeze' && progress.daily.freezes >= MAX_FREEZES;
+              const can = !full && (s.coins ?? 0) <= progress.coins && (s.gems ?? 0) <= progress.gems;
               return (
                 <div key={s.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
                   <div className="w-11 h-11 shrink-0 rounded-xl bg-white/10 flex items-center justify-center text-2xl">{s.icon}</div>
@@ -110,7 +153,7 @@ export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy
                       can ? (s.gems ? 'bg-cyan-500 text-slate-950' : 'bg-amber-400 text-slate-950') : 'bg-white/10 text-slate-500 cursor-not-allowed'
                     }`}
                   >
-                    {s.gems ? `${s.gems} 💎` : `${s.coins} 🪙`}
+                    {full ? 'Full' : s.gems ? `${s.gems} 💎` : `${s.coins} 🪙`}
                   </button>
                 </div>
               );

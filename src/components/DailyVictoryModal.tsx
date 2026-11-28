@@ -69,7 +69,13 @@ export const DailyVictoryModal: React.FC<DailyVictoryModalProps> = ({
             <div className="mt-2 flex items-center justify-center gap-1.5 text-sm font-bold text-orange-300">
               <Flame className="w-4 h-4" /> {result.streak}-day streak
             </div>
-            <div className="text-[11px] text-white/50 mt-0.5">Come back tomorrow to keep it going</div>
+            {result.froze > 0 && <div className="text-xs font-bold text-cyan-300 mt-1">🧊 {result.froze === 1 ? 'A streak freeze' : `${result.froze} streak freezes`} saved your streak</div>}
+            {result.chest && (
+              <div className="mt-2 rounded-xl border border-amber-400/50 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-200">
+                🎁 {result.chest.milestone}-day chest: +{result.chest.coins} 🪙{result.chest.gems > 0 ? ` +${result.chest.gems} 💎` : ''}{result.chest.freezes > 0 ? ` +${result.chest.freezes} 🧊` : ''}
+              </div>
+            )}
+            <div className="text-[11px] text-white/50 mt-1">Come back tomorrow to keep it going{result.freezes > 0 ? ` · 🧊 ${result.freezes} in reserve` : ''}</div>
           </div>
         )}
         {!counted && <div className="text-xs text-white/60 mb-3">A new daily puzzle is out. This run earns no reward.</div>}

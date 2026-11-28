@@ -23,6 +23,7 @@ export interface DailyState {
   totalWins: number;
   bestPoints: number; // best single-day score
   todayPoints: number; // best score on lastDate
+  freezes: number; // streak freezes held (each one covers a missed day)
 }
 
 export interface ProgressState {
@@ -75,7 +76,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 const KEY = 'colorsort_progress_v1';
 
-const freshDaily = (): DailyState => ({ lastDate: '', streak: 0, bestStreak: 0, totalWins: 0, bestPoints: 0, todayPoints: 0 });
+const freshDaily = (): DailyState => ({ lastDate: '', streak: 0, bestStreak: 0, totalWins: 0, bestPoints: 0, todayPoints: 0, freezes: 0 });
 
 const fresh = (): ProgressState => ({
   coins: 50,
@@ -197,18 +198,23 @@ export function applyStat(prev: ProgressState, key: 'hintsUsed' | 'styleChanges'
   return { state: p, unlocked: unlockNew(p, null) };
 }
 
-export type ShopItem = 'hint' | 'undos' | 'tube' | 'pack';
+export const MAX_FREEZES = 2;
+export type ShopItem = 'hint' | 'undos' | 'tube' | 'pack' | 'freeze';
 export const SHOP: { id: ShopItem; title: string; desc: string; icon: string; coins?: number; gems?: number }[] = [
   { id: 'hint', title: '1 Hint', desc: 'Shows the best next move', icon: '💡', coins: 30 },
   { id: 'undos', title: '5 Undos', desc: 'Take back mistakes', icon: '↩️', coins: 40 },
   { id: 'tube', title: '+1 Tube', desc: 'An extra empty tube', icon: '🧪', coins: 60 },
   { id: 'pack', title: 'Booster Pack', desc: '5 hints, 5 undos, 2 tubes', icon: '🎁', gems: 3 },
+  { id: 'freeze', title: 'Streak Freeze', desc: 'Saves your daily streak if you miss a day (hold up to 2)', icon: '🧊', gems: 2 },
 ];
 
 export function applyPurchase(prev: ProgressState, item: ShopItem): ProgressState | null {
   const it = SHOP.find((s) => s.id === item)!;
   if ((it.coins ?? 0) > prev.coins || (it.gems ?? 0) > prev.gems) return null;
-  return { ...prev, coins: prev.coins - (it.coins ?? 0), gems: prev.gems - (it.gems ?? 0) };
+  if (item === 'freeze' && prev.daily.freezes >= MAX_FREEZES) return null;
+  const next = { ...prev, coins: prev.coins - (it.coins ?? 0), gems: prev.gems - (it.gems ?? 0) };
+  if (item === 'freeze') next.daily = { ...prev.daily, freezes: prev.daily.freezes + 1 };
+  return next;
 }
 
 
@@ -222,13 +228,33 @@ export interface DailyResult {
   points: number;
   bestToday: number; // best score today after this win
   improved: boolean; // beat an earlier score today
+  froze: number; // freezes used to keep the streak alive on this win
+  chest: Chest | null; // milestone chest opened by this win
+  freezes: number; // freezes held after this win
 }
 
-const dayBefore = (date: string): string => {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-};
+export interface Chest { milestone: number; coins: number; gems: number; freezes: number }
+
+/** Chest for reaching a streak milestone: day 3, 7, 14, and every 30 days after that. */
+export function chestFor(streak: number): Chest | null {
+  if (streak === 3) return { milestone: 3, coins: 150, gems: 0, freezes: 1 };
+  if (streak === 7) return { milestone: 7, coins: 300, gems: 3, freezes: 0 };
+  if (streak === 14) return { milestone: 14, coins: 500, gems: 5, freezes: 1 };
+  if (streak >= 30 && streak % 30 === 0) return { milestone: streak, coins: 1000, gems: 10, freezes: 2 };
+  return null;
+}
+
+const daysBetween = (a: string, b: string): number =>
+  Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+
+/** Is the streak still alive on [date], and how many freezes would it take? Each missed day costs one freeze. */
+function streakCover(d: DailyState, date: string): { alive: boolean; used: number } {
+  if (!d.lastDate) return { alive: false, used: 0 };
+  const missed = daysBetween(d.lastDate, date) - 1;
+  if (missed <= 0) return { alive: d.lastDate !== '' && missed === 0, used: 0 };
+  if (missed <= (d.freezes ?? 0)) return { alive: true, used: missed };
+  return { alive: false, used: 0 };
+}
 
 /** Pays the daily reward once per UTC day (streak bonus), and tracks the best score. Replays only update the score. */
 export function applyDailyWin(prev: ProgressState, date: string, points: number): { state: ProgressState; result: DailyResult } {
@@ -239,12 +265,15 @@ export function applyDailyWin(prev: ProgressState, date: string, points: number)
   if (!first) {
     return {
       state: { ...prev, daily: { ...d, todayPoints: bestToday, bestPoints: Math.max(d.bestPoints, points) } },
-      result: { first: false, coins: 0, gems: 0, xp: 0, streak: d.streak, points, bestToday, improved },
+      result: { first: false, coins: 0, gems: 0, xp: 0, streak: d.streak, points, bestToday, improved, froze: 0, chest: null, freezes: d.freezes ?? 0 },
     };
   }
-  const streak = d.lastDate === dayBefore(date) ? d.streak + 1 : 1;
-  const coins = 100 + Math.min(streak - 1, 6) * 20;
-  const gems = streak % 7 === 0 ? 5 : streak % 3 === 0 ? 1 : 0;
+  const cover = streakCover(d, date);
+  const streak = cover.alive ? d.streak + 1 : 1;
+  const chest = chestFor(streak);
+  const freezesAfter = Math.min(MAX_FREEZES, Math.max(0, (d.freezes ?? 0) - cover.used) + (chest?.freezes ?? 0));
+  const coins = 100 + Math.min(streak - 1, 6) * 20 + (chest?.coins ?? 0);
+  const gems = (streak % 7 === 0 ? 5 : streak % 3 === 0 ? 1 : 0) + (chest?.gems ?? 0);
   const xp = 40;
   return {
     state: {
@@ -260,13 +289,15 @@ export function applyDailyWin(prev: ProgressState, date: string, points: number)
         totalWins: d.totalWins + 1,
         bestPoints: Math.max(d.bestPoints, points),
         todayPoints: points,
+        freezes: freezesAfter,
       },
     },
-    result: { first: true, coins, gems, xp, streak, points, bestToday, improved: false },
+    result: { first: true, coins, gems, xp, streak, points, bestToday, improved: false, froze: cover.used, chest, freezes: freezesAfter },
   };
 }
 
 /** Streak still alive today (won today or yesterday); otherwise it has lapsed. */
 export function liveDailyStreak(d: DailyState, today: string): number {
-  return d.lastDate === today || d.lastDate === dayBefore(today) ? d.streak : 0;
+  if (d.lastDate === today) return d.streak;
+  return streakCover(d, today).alive ? d.streak : 0;
 }
