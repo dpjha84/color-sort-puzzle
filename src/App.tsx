@@ -363,7 +363,7 @@ export default function App() {
       if (mode === 'daily' && dailyCfg) {
         const pts = dailyPoints(movesCount + 1, targetMoves, timeSeconds);
         const counted = dailyCfg.date === todayUTC(); // a puzzle left open past midnight is practice only
-        let res: DailyResult = { first: false, coins: 0, gems: 0, xp: 0, streak: progressRef.current.daily.streak, points: pts, bestToday: pts, improved: false };
+        let res: DailyResult = { first: false, coins: 0, gems: 0, xp: 0, streak: progressRef.current.daily.streak, points: pts, bestToday: pts, improved: false, froze: 0, chest: null, freezes: progressRef.current.daily.freezes ?? 0 };
         if (counted) {
           const out = applyDailyWin(progressRef.current, dailyCfg.date, pts);
           setProgress(out.state); // applyDailyWin already pays the rewards

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Trophy, ShoppingBag, Check } from 'lucide-react';
-import { ACHIEVEMENTS, SHOP, ProgressState, ShopItem, playerLevel } from '../utils/progress';
+import { ACHIEVEMENTS, SHOP, MAX_FREEZES, ProgressState, ShopItem, playerLevel } from '../utils/progress';
 
 interface Props {
   isOpen: boolean;
@@ -95,7 +95,8 @@ export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy
 
           {tab === 'shop' &&
             SHOP.map((s) => {
-              const can = (s.coins ?? 0) <= progress.coins && (s.gems ?? 0) <= progress.gems;
+              const full = s.id === 'freeze' && progress.daily.freezes >= MAX_FREEZES;
+              const can = !full && (s.coins ?? 0) <= progress.coins && (s.gems ?? 0) <= progress.gems;
               return (
                 <div key={s.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
                   <div className="w-11 h-11 shrink-0 rounded-xl bg-white/10 flex items-center justify-center text-2xl">{s.icon}</div>
@@ -110,7 +111,7 @@ export const RewardsModal: React.FC<Props> = ({ isOpen, onClose, progress, onBuy
                       can ? (s.gems ? 'bg-cyan-500 text-slate-950' : 'bg-amber-400 text-slate-950') : 'bg-white/10 text-slate-500 cursor-not-allowed'
                     }`}
                   >
-                    {s.gems ? `${s.gems} 💎` : `${s.coins} 🪙`}
+                    {full ? 'Full' : s.gems ? `${s.gems} 💎` : `${s.coins} 🪙`}
                   </button>
                 </div>
               );
